@@ -924,7 +924,7 @@ function changeSkillRole(member, roleString){
     if(roleString.includes("pending")){
       //message the member
       try{
-        member.send('Thank you for taking the skill survey! Note: for skill levels above Gold, your skill role will say "(pending verification)" on the end of it.  After you\'ve proved your skill by playing against players of the skill level you\'ve selected, a moderator can give you the appropriate role without the "(pending verification)" on the end.')
+        member.send('Thank you for taking the skill survey!  Note:  for skill levels above Gold, your skill role will say "(pending verification)" on the end of it.  After you\'ve proved your skill by playing against players of the skill level you\'ve selected, a moderator can give you the appropriate role without the "(pending verification)" on the end.')
       } catch (err) {
         log('Failed to send member a message, perhaps they have blocked DMs?')
         log(err)
