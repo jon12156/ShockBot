@@ -38,6 +38,8 @@ I think you can maybe get away with not having anything for "channelIDMaster" th
 and look for //bot.channels.get(textChannelIDForSurveys).send(skillSurveyMessageContent)
 Feel free to first edit line of code 48 (approximately) const skillSurveyMessageContent to represent what skills each level like Bronze or Master mean in your game.
 
+For each channel you provided an ID for in botsettings.json, make sure your bot has read and send message permission in that channel.
+
 If all is well, you should get output from the bot something like this:
 2018:12:05 12:24:35 Bot Launched...
 2018:12:05 12:24:35 starting new matchmaker

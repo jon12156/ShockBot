@@ -4,6 +4,7 @@
   "textChannelIDForMatchmaking": "",
   "textChannelIDForWelcome": "",
   "textChannelIDForSetupHelp": "",
+  "textChannelIDForSkillVerification": ""
   "messageIDForMatchmakingRoles": "",
   "roleIDLookingForOpponent": ""  ,
   "roleIDPotentiallyAvailable": "",
@@ -34,9 +35,6 @@
   "roleIDMaster": "",
   "roleIDDiamond": "",
   "roleIDPlatinum": "",
-  "roleIDMasterPending": "",
-  "roleIDDiamondPending": "",
-  "roleIDPlatinumPending": "",
   "roleIDGold": "",
   "roleIDSilver": "",
   "roleIDBronze": "",
