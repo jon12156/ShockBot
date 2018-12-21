@@ -924,13 +924,19 @@ function changeSkillRole(member, roleString){
     if(roleString.includes("pending")){
       //message the member
       try{
-        member.send('Thank you for taking the skill survey!  Note:  for skill levels above Gold, your skill role will say "(pending verification)" on the end of it.  After you\'ve proved your skill by playing against players of the skill level you\'ve selected, a moderator can give you the appropriate role without the "(pending verification)" on the end.')
+        member.send('Thank you for taking the skill survey!  Note:  for skill levels above Gold, your skill role will say "(pending verification)" on the end of it.  After you\'ve proved your skill by playing well enough against players of the skill level you\'ve selected, a moderator can give you the appropriate role without the "(pending verification)" on the end.')
       } catch (err) {
         log('Failed to send member a message, perhaps they have blocked DMs?')
         log(err)
       }
-      //report this event to some channel
       
+      //report this event to the skill-verification channel
+      try{
+        skillVerificationTextChannel.send(`${member} is now ${roleString}.`)
+      } catch (err) {
+        log('Failed to send a message in the skill-verification channel')
+        log(err)
+      }
     }
   }
 
@@ -1060,7 +1066,7 @@ bot.on('ready', () => {
     errorCount += 1;
   }
   try { //try to find the matchmaking channel
-    skillVerificationChannel = bot.channels.get(channelIDStreamAlerts)
+    skillVerificationTextChannel = bot.channels.get(textChannelIDForSkillVerification)
     log('found the skill-verification channel')
   }
   catch (e) {
