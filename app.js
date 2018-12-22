@@ -1455,9 +1455,11 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           var role = memberThatReacted.guild.roles.get(roleIDSpectators);
           if(memberThatReacted.roles.has(roleIDSpectators)) {
             memberThatReacted.removeRole(role)
+            memberThatReacted.send("I've removed your @Spectators role")
           }
           else{
             memberThatReacted.addRole(role)
+            memberThatReacted.send("I've assigned you the @Spectators role")
           }
           
         }
