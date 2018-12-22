@@ -1451,10 +1451,17 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           changeMatchmakingRole(memberThatReacted, 'Do Not Disturb');
         }
         else if(emoji === reactionIdentSpectator){
-          log(`${memberThatReacted.user.username} reacted to become a spectator`)
+          log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
           var role = memberThatReacted.guild.roles.get(roleIDSpectators);
-          log('roleIDSpectators = ' + roleIDSpectators)
-          memberThatReacted.addRole(role);
+          if(memberThatReacted.roles.has(roleIDSpectators)) {
+            memberThatReacted.removeRole(role)
+            memberThatReacted.send("I've removed your @Spectators role")
+          }
+          else{
+            memberThatReacted.addRole(role)
+            memberThatReacted.send("I've assigned you the @Spectators role")
+          }
+          
         }
         else if(emoji === reactionIdentLogMatchSeeks){
           log('matchSeeks:')
@@ -1470,9 +1477,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           })
         }else log(memberThatReacted.user.username + ' reacted to messageForMatchmakingRoles with an invalid emoji')
         //remove the user's reaction
-        if (emoji !== reactionIdentSpectator){
-          messageReaction.remove(memberThatReacted)
-        }
+        messageReaction.remove(memberThatReacted)
       }
       //if the message is the SkillSurveyMessage
       else if (messageReaction.message.id === messageIDForSkillSurvey){
@@ -1583,17 +1588,11 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
     //})
   });
 
-  bot.on('messageReactionRemove', (messageReaction, user) => {
+  /* bot.on('messageReactionRemove', (messageReaction, user) => {
     messageReaction.message.guild.fetchMember(user).then(memberRemovingReaction => {
-      var emoji = messageReaction.emoji.identifier
-      if (messageReaction.message.id === messageIDForMatchmakingRoles){
-        if(emoji === reactionIdentSpectator){
-          var role = memberRemovingReaction.guild.roles.find(x => x.id === roleIDSpectators);
-          memberRemovingReaction.removeRole(role);
-        }
-      }
+      
     });
-  });
+  }); */
 
 
   if (true) {
