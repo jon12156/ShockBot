@@ -15,6 +15,7 @@ var matchmaker;
 const textChannelIDForMatchmaking = botSettings.textChannelIDForMatchmaking
 const textChannelIDForWelcome = botSettings.textChannelIDForWelcome
 const textChannelIDForSetupHelp = botSettings.textChannelIDForSetupHelp
+const textChannelIDForSkillVerification = botSettings.textChannelIDForSkillVerification
 const channelIDStreamAlerts = botSettings.channelIDStreamAlerts
 const messageIDForMatchmakingRoles = botSettings.messageIDForMatchmakingRoles
 const roleIDLookingForOpponent = botSettings.roleIDLookingForOpponent  /* to get a role id, type \@rolename with the \ backslash escape), you need to enter that on your desired server (at any channel)
@@ -43,7 +44,7 @@ const reactionIdentGold = botSettings.reactionIdentGold //:three:
 const reactionIdentPlatinum = botSettings.reactionIdentPlatinum //:four:
 const reactionIdentDiamond = botSettings.reactionIdentDiamond //:five:
 const reactionIdentMaster = botSettings.reactionIdentMaster //:six:
-const validSkillRoleStrings = ['Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze']
+const validSkillRoleStrings = ['Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Master (pending verification)', 'Diamond (pending verification)', 'Platinum (pending verification)']
 const textChannelIDForSurveys = botSettings.textChannelIDForSurveys
 const skillSurveyMessageContent = '__**Skill Survey**__\n\nPlease estimate your own skill at the game.  I\'ve put together a scale from Bronze to Master.\n\nTo answer, just click a reaction button corresponding to the number next to the skill level you think most closely matches your current skill.\n\nPlease answer as accurately as possible.  We\'d appreciate it if you don\'t joke and rank yourself way higher or way lower than your actual approximate skill.\n\n:one: **Bronze**\n-Very little or no experience with the game\n-mostly goes for 4 combos if anything.\n-prefers difficulty level 1\n\n:two: **Silver**\n-understands how to lower the stack (get rid of towers and fill holes)\n-looks for 5-6 combos\n-sets up x2 chains (not so many skill chains)\n-comfortable on levels 2-4\n\n:three: **Gold**\n-comfortable on level 5\n-can do some skill chains, usually just in the nick of time.\n-great at chaining off of transforming garbage\n\n:four: **Platinum**\n-Comfortable on level 8.\n-good at recognizing patterns and building long skill chains.\n\n:five: **Diamond**\n-comfortable on level 10\n-strategizes on what kinds of garbage to send and when, and when to stop a chain.\n-sees chains many links ahead, and can quickly send exactly the garbage he wants.\n\n:six: **Master**\n-great at incorporating lots of medium-large combos while chaining, which produces very high garbage output.\n-often takes advantage of time lag chains, and can often work on two chains at once.\n-deep game sense, knowing when to do certain things that will give him/her an advantage, like always knowing just how much garbage is required to top out the opponent.'
 
@@ -56,6 +57,9 @@ const roleIDPlatinum = botSettings.roleIDPlatinum
 const roleIDGold = botSettings.roleIDGold
 const roleIDSilver = botSettings.roleIDSilver
 const roleIDBronze = botSettings.roleIDBronze
+const roleIDMasterPending = botSettings.roleIDMasterPending
+const roleIDDiamondPending = botSettings.roleIDDiamondPending
+const roleIDPlatinumPending = botSettings.roleIDPlatinumPending
 const channelIDMaster = botSettings.channelIDMaster
 const channelIDDiamond = botSettings.channelIDDiamond
 const channelIDPlatinum = botSettings.channelIDPlatinum
@@ -905,7 +909,7 @@ function removeAllMatchmakingRoles(member) {
 }
 function removeAllSkillRoles(member) {
   //remove all skill roles
-  member.removeRoles([roleIDMaster, roleIDDiamond, roleIDPlatinum, roleIDGold, roleIDSilver, roleIDBronze])
+  member.removeRoles([roleIDMaster, roleIDDiamond, roleIDPlatinum, roleIDGold, roleIDSilver, roleIDBronze, roleIDMasterPending, roleIDDiamondPending, roleIDPlatinumPending])
   log('removing all skill roles from ' + member.user.username + '...')
 
 }
@@ -917,6 +921,23 @@ function changeSkillRole(member, roleString){
       let roleID = member.guild.roles.find(x => x.name === roleString).id
       addRoleToMember(roleID, member)
     });
+    if(roleString.includes("pending")){
+      //message the member
+      try{
+        member.send('Thank you for taking the skill survey!  Note:  for skill levels above Gold, your skill role will say "(pending verification)" on the end of it.  After you\'ve proved your skill by playing well enough against players of the skill level you\'ve selected, a moderator can give you the appropriate role without the "(pending verification)" on the end.')
+      } catch (err) {
+        log('Failed to send member a message, perhaps they have blocked DMs?')
+        log(err)
+      }
+      
+      //report this event to the skill-verification channel
+      try{
+        skillVerificationTextChannel.send(`${member} is now ${roleString}.`)
+      } catch (err) {
+        log('Failed to send a message in the skill-verification channel')
+        log(err)
+      }
+    }
   }
 
 }
@@ -1042,6 +1063,14 @@ bot.on('ready', () => {
   }
   catch (e) {
     log('ERROR: Could not find the stream-alerts channel')
+    errorCount += 1;
+  }
+  try { //try to find the matchmaking channel
+    skillVerificationTextChannel = bot.channels.get(textChannelIDForSkillVerification)
+    log('found the skill-verification channel')
+  }
+  catch (e) {
+    log('ERROR: Could not find the skill-verification channel')
     errorCount += 1;
   }
   //one time, send the skillSurveyMessage.  We'll comment this out after it's been added once
@@ -1460,13 +1489,13 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           changeSkillRole(memberThatReacted, 'Gold')
           break;
           case reactionIdentPlatinum:
-          changeSkillRole(memberThatReacted, 'Platinum')
+          changeSkillRole(memberThatReacted, 'Platinum (pending verification)')
           break;
           case reactionIdentDiamond:
-          changeSkillRole(memberThatReacted, 'Diamond')
+          changeSkillRole(memberThatReacted, 'Diamond (pending verification)')
           break;
           case reactionIdentMaster:
-          changeSkillRole(memberThatReacted, 'Master')
+          changeSkillRole(memberThatReacted, 'Master (pending verification)')
           break;
           default:
           log(memberThatReacted.user.username + ' reacted to the Skill Survey with an invalid emoji')
