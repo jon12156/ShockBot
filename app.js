@@ -367,12 +367,25 @@ class Matchmaker{
             log(err)
           }
           this.matchSet.delete(match)
-          // set the other player as POTENTIALLY AVAILABLE
-          if (match.player1 === member){
-            changeMatchmakingRole(match.player2, 'POTENTIALLY AVAILABLE')
+          // Remove the opponent's IN-GAME role.
+          // set the opponent as POTENTIALLY AVAILABLE if they aren't already LOOKING for another opponent.
+          if (match.player1 === member ){
+            if (match.player2.roles.has(roleIDLookingForOpponent)
+             && match.player2.roles.has(roleIDInGame)){
+              match.player2.removeRole(member.guild.roles.get(roleIDInGame))
+            }
+            else{
+              changeMatchmakingRole(match.player2, 'POTENTIALLY AVAILABLE')
+            }
           }
-          if (match.player2 === member){
-            changeMatchmakingRole(match.player1, 'POTENTIALLY AVAILABLE')
+          if (match.player2 === member ){
+            if (match.player1.roles.has(roleIDLookingForOpponent)
+             && match.player1.roles.has(roleIDInGame)){
+              match.player1.removeRole(member.guild.roles.get(roleIDInGame))
+            }
+            else{
+              changeMatchmakingRole(match.player1, 'POTENTIALLY AVAILABLE')
+            }
           }
           log(`matchAnnouncement to delete: ${match.matchAnnouncement.content}`)
           if (match.matchAnnouncement !== null) {
