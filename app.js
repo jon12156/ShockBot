@@ -1,6 +1,7 @@
 
 const botSettings = require("./botsettings.json")
 var Discord = require('discord.js');
+const fs = require('fs');
 var bot = new Discord.Client({autoReconnect:true});
 var matchmakingTextChannel;
 var streamAlertsChannel;
@@ -8,6 +9,7 @@ var surveysTextChannel;
 var messageForMatchmakingRoles;
 var messageForSkillSurvey;
 var matchmaker;
+var lastMatchmakingActivity
 
 // the current lists of MatchSeeks, Matches
 
@@ -21,7 +23,7 @@ const messageIDForMatchmakingRoles = botSettings.messageIDForMatchmakingRoles
 const roleIDLookingForOpponent = botSettings.roleIDLookingForOpponent  /* to get a role id, type \@rolename with the \ backslash escape), you need to enter that on your desired server (at any channel)
 The number between <@& and > is your desired role id*/
 const roleIDPotentiallyAvailable = botSettings.roleIDPotentiallyAvailable
-const roleIDDoNotDisturb = botSettings.roleIDDoNotDisturb
+const roleIDDoNotNotify = botSettings.roleIDDoNotNotify
 const roleIDInGame = botSettings.roleIDInGame
 const roleIDNewMember = botSettings.roleIDNewMember
 const roleIDSpectators = botSettings.roleIDSpectators
@@ -72,6 +74,18 @@ const reactionIdentAcceptChallenge = botSettings.reactionIdentAcceptChallenge  /
 const reactionIdentLogMatchSeeks = botSettings.reactionIdentLogMatchSeeks //:wrench:
 const reactionIdentNoMike = botSettings.reactionIdentNoMike //:keyboard:
 const delayInSecBeforeNonPlayersCanJoinChat = botSettings.delayInSecBeforeNonPlayersCanJoinChat //in seconds (NOT MILLISECONDS) i.e. 10 for 10 seconds
+var maintenanceIntervalInMin = botSettings.maintenanceIntervalInMin
+if (isNaN(maintenanceIntervalInMin)){
+  log(`Error: botSettings file does not contain a valid maintenanceIntervalInMin.  Using 10 minutes`)
+  maintenanceIntervalInMin = 10
+}
+var inactivityActions
+if (botSettings.hasOwnProperty('inactivityActions')) {
+  inactivityActions = botSettings.inactivityActions
+}else{
+  log(`Error: No inactivityActions specified in botSettings.json.  We will not change matchmaking roles for inactivity.`)
+  inactivityActions = []
+}
 // Functions
 
 // pauses running of code for duration passed in (in milliseconds)
@@ -263,7 +277,7 @@ class Matchmaker{
   log('Something went wrong with deleting the messages')
   })*/
   }
-  
+
   removeLookingMessages(member){
     // remove any other messages saying the member "is looking", perhaps sent by cordelia
     matchmakingTextChannel.fetchMessages().then(function(messageCollection){
@@ -290,7 +304,7 @@ class Matchmaker{
       log('Something went wrong with deleting the messages')
     })
   }
-  
+
   async addMatch(match){
     log('beginning of matchmaker addMatch method')
     matchmaker.removeLookingMessages(match.player1)
@@ -401,8 +415,8 @@ class Matchmaker{
       }
     })
   }
-  
-  
+
+
   memberIsSeeking(member){
     let isSeeking = false
     this.matchSeekSet.forEach(matchSeek =>{
@@ -609,7 +623,7 @@ class Match{
           reject(err)
         })
         log(this.coreAnnouncementMessage)
-        let controlPanelMessageContent = `${this.player1} vs ${this.player2}\n\n**Match Control Panel**\n:unlock: (Default) Allow other people to join chat (text/voice)\n:lock: Do not allow other people to join chat\n:white_check_mark: Leave match and change me to Looking for Opponent\n:bell: Leave match and change me to Potentially Available\n:no_bell: Leave match and change me to Do Not Disturb`
+        let controlPanelMessageContent = `${this.player1} vs ${this.player2}\n\n**Match Control Panel**\n:unlock: (Default) Allow other people to join chat (text/voice)\n:lock: Do not allow other people to join chat\n:white_check_mark: Leave match and change me to Looking for Opponent\n:bell: Leave match and change me to Potentially Available\n:no_bell: Leave match and change me to Do Not Notify`
         this.textChannel.send(controlPanelMessageContent)
         .then(async controlPanelMessage =>{
           this.controlPanelMessage = controlPanelMessage
@@ -643,7 +657,7 @@ class Match{
                 log('Perhaps the room has already been closed? Here\'s the error:')
                 log(err)
               }
-              
+
             }else{
               log('Conditions not met for adding reactions to the announcement')
               //log(`this.locked: ${this.locked}`)
@@ -815,10 +829,11 @@ class Challenge {
 function changeMatchmakingRole(member, roleString) {
   //if the member is a bot, don't do anything
   if (member.bot) return;
+  lastMatchmakingActivity[member.id] = Date.now()
   //do stuff depending on what matchmaking role roleString represents
   if (roleString.toUpperCase() === 'LOOKING FOR OPPONENT') {
-    
-    member.removeRoles([roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotDisturb,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
+
+    member.removeRoles([roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
     // pause a moment for roles to be finished being removed
     sleep(500).then(() => {
       //assign '@looking for Opponent'
@@ -873,14 +888,14 @@ if (roleString.toUpperCase() === 'POTENTIALLY AVAILABLE') {
   })
   return;
 }
-if (roleString.toUpperCase() === 'DO NOT DISTURB') {
+if (roleString.toUpperCase() === 'DO NOT NOTIFY') {
   removeAllMatchmakingRoles(member);
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.find(x => x.id === roleIDDoNotDisturb);
+    var role = member.guild.roles.find(x => x.id === roleIDDoNotNotify);
     member.addRole(role);
-    log('Added role \'@Do Not Disturb\' to member ' + member.user.username);
+    log('Added role \'@Do Not Notify\' to member ' + member.user.username);
     //cancel any existing game seek
   })
   return;
@@ -916,7 +931,7 @@ sleep(500).then(() => {
 })
 */
 function removeAllMatchmakingRoles(member) {
-  member.removeRoles([roleIDInGame,roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotDisturb,roleIDNewMember,roleIDInactive])
+  member.removeRoles([roleIDInGame,roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
   log('removing all matchmaking roles from ' + member.user.username + '...')
 
 }
@@ -942,7 +957,7 @@ function changeSkillRole(member, roleString){
         log('Failed to send member a message, perhaps they have blocked DMs?')
         log(err)
       }
-      
+
       //report this event to the skill-verification channel
       try{
         skillVerificationTextChannel.send(`${member} is now ${roleString}.`)
@@ -978,7 +993,7 @@ bot.on('message', message => {
         changeMatchmakingRole(message.member, 'Potentially Available')
       }
       else if (msg === prefix +'DND'){
-        changeMatchmakingRole(message.member, 'Do Not Disturb')
+        changeMatchmakingRole(message.member, 'Do Not Notify')
       }
       else if (msg === prefix +'INGAME' || msg === prefix + 'IG' || msg === prefix + 'IN-GAME'){
         changeMatchmakingRole(message.member, 'IN-GAME')
@@ -1031,8 +1046,8 @@ bot.on('guildMemberUpdate', (oldMember, newMember) => {
     log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
     matchmaker.removeMatchSeek(newMember);
   }
-  if(newMember.roles.exists('id', roleIDDoNotDisturb) && !oldMember.roles.exists('id', roleIDDoNotDisturb)){
-    log(`${newMember.user.username} changed to Do Not Disturb`)
+  if(newMember.roles.exists('id', roleIDDoNotNotify) && !oldMember.roles.exists('id', roleIDDoNotNotify)){
+    log(`${newMember.user.username} changed to Do Not Notify`)
     matchmaker.cancelSeeksAndChallenges(newMember);
   }
   if(newMember.roles.exists('id', roleIDInGame) && !oldMember.roles.exists('id', roleIDInGame)){
@@ -1150,8 +1165,8 @@ bot.on('ready', () => {
 
       log('reactions added to the message for Skill Survey')
       //Run these only once, then comment them out
-      //bot.channels.get(textChannelIDForMatchmaking).send(`Click a reaction to change your matchmaking status\n:white_check_mark: Looking for Opponent\n:bell: Potentially Available\n:no_entry: In-Game\n:no_bell: Do Not Disturb\n\nIf a player is already looking for an opponent, you can offer to play with them by clicking the :crossed_swords:\nThey can then accept by clicking :ok:\nNote: You can also add a custom message to your match request by sending a message in here.\n:lock: or :unlock: indicate whether a match's channels are locked.\nIf unlocked, you can click the :microphone2: to get access to the match's channels as a "spectator."\n:eyes: Toggles on/off pings for new spectatable matches. (@Spectators role)\n\nNeed help?  See <#${textChannelIDForWelcome}> or ask in <#${textChannelIDForSetupHelp}>`)
-      
+      //bot.channels.get(textChannelIDForMatchmaking).send(`Click a reaction to change your matchmaking status\n:white_check_mark: Looking for Opponent\n:bell: Potentially Available\n:no_entry: In-Game\n:no_bell: Do Not Notify\n\nIf a player is already looking for an opponent, you can offer to play with them by clicking the :crossed_swords:\nThey can then accept by clicking :ok:\nNote: You can also add a custom message to your match request by sending a message in here.\n:lock: or :unlock: indicate whether a match's channels are locked.\nIf unlocked, you can click the :microphone2: to get access to the match's channels as a "spectator."\n:eyes: Toggles on/off pings for new spectatable matches. (@Spectators role)\n\nNeed help?  See <#${textChannelIDForWelcome}> or ask in <#${textChannelIDForSetupHelp}>`)
+
       //bot.channels.get(textChannelIDForSurveys).send(skillSurveyMessageContent)
 
       //optional:
@@ -1164,10 +1179,53 @@ bot.on('ready', () => {
     log('ERROR: Could not find the message for the Skill Survey Message')
   });
 
-
-
+  sleep(1).then(async function(){
+    lastMatchmakingActivity = JSON.parse(fs.readFileSync("./lastMatchmakingActivity.json", "utf8"));
+    log(`Successfully read lastMatchmakingActivity.json`)
+  }).catch(function(e){
+    log(e)
+    log('ERROR reading lastMatchmakingActivity.json. Creating blank list.')
+    lastMatchmakingActivity= {}
+  });
+  sleep(3000).then(async function(){ //wait a few seconds to ensure enough time to read the file
+    //doMaintenance()  //hmm, running doMaintenance() here seems to break matchmaking, I may look at resolving that later.
+      //Do stuff every so often:
+      setInterval (function () {
+        doMaintenance()
+      }, maintenanceIntervalInMin * 60 * 1000) //every maintenanceIntervalInMin minutes
+  }).catch(function(e){
+    log(e)
+    log('ERROR in Maintenance section.')
+  });
 });
 
+function doMaintenance(){
+  //Note: this looks like the bot might support multiple guilds.  It doesn't, currently.
+  bot.guilds.map((guild) => {
+    //move members to less active roles over time
+    inactivityActions.forEach(action =>{
+      guild.roles.get(action.roleID).members.map(member =>{
+        if (!lastMatchmakingActivity[member.id]){
+          lastMatchmakingActivity[member.id] = Date.now()
+        }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[member.id]){
+          changeMatchmakingRole(member, action.nextRoleName)
+          if (action.message && action.message != "") {
+            member.send(action.message)
+          }
+        }
+      })
+    })
+  })
+
+
+  writeLastMatchmakingActivity()
+}
+
+function writeLastMatchmakingActivity(){
+  fs.writeFile("./lastMatchmakingActivity.json", JSON.stringify(lastMatchmakingActivity), (err) => {
+    if (err) log(err)
+  });
+}
 
 bot.on('disconnect', event => {
   log('Disconnected from Internet')
@@ -1460,8 +1518,8 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
             matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
             matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
           }
-          log(memberThatReacted.user.username + ' reacted Do Not Disturb')
-          changeMatchmakingRole(memberThatReacted, 'Do Not Disturb');
+          log(memberThatReacted.user.username + ' reacted Do Not Notify')
+          changeMatchmakingRole(memberThatReacted, 'Do Not Notify');
         }
         else if(emoji === reactionIdentSpectator){
           log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
@@ -1474,7 +1532,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
             memberThatReacted.addRole(role)
             memberThatReacted.send("I've assigned you the @Spectators role")
           }
-          
+
         }
         else if(emoji === reactionIdentLogMatchSeeks){
           log('matchSeeks:')
@@ -1603,7 +1661,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
 
   /* bot.on('messageReactionRemove', (messageReaction, user) => {
     messageReaction.message.guild.fetchMember(user).then(memberRemovingReaction => {
-      
+
     });
   }); */
 
