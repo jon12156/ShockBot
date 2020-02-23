@@ -1529,6 +1529,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
             memberThatReacted.send("I've removed your @Spectators role")
           }
           else{
+            memberThatReacted.removeRoles([roleIDNewMember,roleIDInactive])
             memberThatReacted.addRole(role)
             memberThatReacted.send("I've assigned you the @Spectators role")
           }
