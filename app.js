@@ -572,7 +572,7 @@ class Match{
   memberIsASpectatorInMatch(member){
     let answer = false
     this.spectators.forEach(spectator => {
-      if (spectator.member.id === spectator.member.id) answer = true
+      if (spectator.member.id === member.id) answer = true
     })
     return answer
   }
