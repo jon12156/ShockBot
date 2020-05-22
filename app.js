@@ -826,24 +826,24 @@ class Challenge {
   }
 }
 
-function changeMatchmakingRole(member, roleString) {
+function changeMatchmakingRole(member, platform, newRoleID) {
   //if the member is a bot, don't do anything
   if (member.bot) return;
   lastMatchmakingActivity[member.id] = Date.now()
   //do stuff depending on what matchmaking role roleString represents
-  if (roleString.toUpperCase() === 'LOOKING FOR OPPONENT') {
+  if (newRoleID === platform.roleIDLookingForOpponent) {
 
-    member.removeRoles([roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
+    member.removeRoles([platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
     // pause a moment for roles to be finished being removed
     sleep(500).then(() => {
       //assign '@looking for Opponent'
-      var role = member.guild.roles.find(x => x.id === roleIDLookingForOpponent);
+      var role = member.guild.roles.find(x => x.id === platform.roleIDLookingForOpponent);
       member.addRole(role);
-      log('Added role \'@Looking for Opponent\' to member ' + member.user.username);
+      log('Added role \'@Looking for Opponent\' for platform ' + platform.platformName + 'to member ' + member.user.username);
 
       //send a message in the matchmaking channel alerting people that a user wants to play
       sleep(1).then(async function(){
-        const matchSeekToAdd = new MatchSeek(member, matchmakingTextChannel, true);
+        const matchSeekToAdd = new MatchSeek(member, platform.matchmakingTextChannel, true);
 
         //await matchSeekToAdd.sendMessage();
 
@@ -876,20 +876,20 @@ function changeMatchmakingRole(member, roleString) {
 })
 return;
 }
-if (roleString.toUpperCase() === 'POTENTIALLY AVAILABLE') {
-  removeAllMatchmakingRoles(member);
+if (newRoleID === platform.roleIDPotentiallyAvailable) {
+  removeAllMatchmakingRoles(member, platform);
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.find(x => x.id === roleIDPotentiallyAvailable);
+    var role = member.guild.roles.find(x => x.id === platform.roleIDPotentiallyAvailable);
     member.addRole(role);
-    log('Added role \'@Potentially available\' to member ' + member.user.username);
+    log('Added role \'@Potentially available\' for platform ' + platform.platformName + ' to member ' + member.user.username);
     //cancel any existing game seek
   })
   return;
 }
 if (roleString.toUpperCase() === 'DO NOT NOTIFY') {
-  removeAllMatchmakingRoles(member);
+  removeAllMatchmakingRoles(member); //todo: have this function remove all matchmaking roles on all platforms if a platform is not specified.
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
