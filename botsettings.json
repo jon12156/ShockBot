@@ -1,19 +1,25 @@
 {
   "token": "",
   "prefix": ">",
-  "textChannelIDForMatchmaking": "",
+  "matchmakingPlatforms": [
+    {
+      "platformName": ""
+      "textChannelIDForMatchmaking": "",
+      "messageIDForMatchmakingRoles": "",
+      "roleIDLookingForOpponent": ""  ,
+      "roleIDPotentiallyAvailable": "",
+      "roleIDDoNotNotify": "",
+      "roleIDInGame": "",
+      "roleIDSpectators": "",
+      "reactionIdentLookingForOpponent": "%E2%9C%85",
+      "reactionIdentPotentiallyAvailable": "%F0%9F%94%94"
+    }
+  ],
+  "roleIDNewMember": "",
+  "roleIDInactive": "",
   "textChannelIDForWelcome": "",
   "textChannelIDForSetupHelp": "",
   "textChannelIDForSkillVerification": "",
-  "messageIDForMatchmakingRoles": "",
-  "roleIDLookingForOpponent": ""  ,
-  "roleIDPotentiallyAvailable": "",
-  "roleIDDoNotNotify": "",
-  "roleIDInGame": "",
-  "roleIDNewMember": "",
-  "roleIDInactive": "",
-  "reactionIdentLookingForOpponent": "%E2%9C%85",
-  "reactionIdentPotentiallyAvailable": "%F0%9F%94%94",
   "reactionIdentInGame": "%E2%9B%94",
   "reactionIdentDND": "%F0%9F%94%95",
   "reactionIdentSpectator": "%F0%9F%91%80",

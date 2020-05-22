@@ -14,19 +14,12 @@ var lastMatchmakingActivity
 // the current lists of MatchSeeks, Matches
 
 //IDs
-const textChannelIDForMatchmaking = botSettings.textChannelIDForMatchmaking
 const textChannelIDForWelcome = botSettings.textChannelIDForWelcome
 const textChannelIDForSetupHelp = botSettings.textChannelIDForSetupHelp
 const textChannelIDForSkillVerification = botSettings.textChannelIDForSkillVerification
 const channelIDStreamAlerts = botSettings.channelIDStreamAlerts
 const messageIDForMatchmakingRoles = botSettings.messageIDForMatchmakingRoles
-const roleIDLookingForOpponent = botSettings.roleIDLookingForOpponent  /* to get a role id, type \@rolename with the \ backslash escape), you need to enter that on your desired server (at any channel)
-The number between <@& and > is your desired role id*/
-const roleIDPotentiallyAvailable = botSettings.roleIDPotentiallyAvailable
-const roleIDDoNotNotify = botSettings.roleIDDoNotNotify
-const roleIDInGame = botSettings.roleIDInGame
 const roleIDNewMember = botSettings.roleIDNewMember
-const roleIDSpectators = botSettings.roleIDSpectators
 const roleIDInactive = botSettings.roleIDInactive
 const reactionIdentLookingForOpponent = botSettings.reactionIdentLookingForOpponent
 const reactionIdentPotentiallyAvailable = botSettings.reactionIdentPotentiallyAvailable //:regional_indicator_l:
@@ -86,6 +79,14 @@ if (botSettings.hasOwnProperty('inactivityActions')) {
   log(`Error: No inactivityActions specified in botSettings.json.  We will not change matchmaking roles for inactivity.`)
   inactivityActions = []
 }
+var matchmakingPlatforms
+if (botSettings.hasOwnProperty('matchmakingPlatforms')) {
+  matchmakingPlatforms = botSettings.matchmakingPlatforms
+}else{
+  log(`Fatal Error: No matchmakingPlatforms specified in botSettings.json. `)
+  matchmakingPlatforms = []
+  throw ''; //exit the program
+}
 // Functions
 
 // pauses running of code for duration passed in (in milliseconds)
@@ -129,7 +130,6 @@ class Matchmaker{
     log('starting new matchmaker');
     this.matchSeekSet = new Set();
     this.matchSet = new Set();
-    this.channelForNextMatchSeek = textChannelIDForMatchmaking;
     log('created new matchmaker');
     //log('matchmaker\'s matchSeekSet:\n' + this.matchSeekSet)
 
@@ -983,27 +983,31 @@ bot.on('message', message => {
   }
   // Cammands will only be run if the message was sent in a channel we are accepting commands in.
   // the Shockbot-commands channel's ID is 389650317026787329
-  if (message.channel.id === textChannelIDForMatchmaking){
-    if (msg.startsWith(prefix)){
+  matchmakingPlatforms.forEach(platform =>{
+    if (message.channel.id === platform.textChannelIDForMatchmaking){
+      if (msg.startsWith(prefix)){
 
-      if (msg === prefix + 'LOOKING' || msg === prefix + 'LO') {
-        changeMatchmakingRole(message.member, 'Looking For Opponent')
-      }
-      else if (msg === prefix + 'LURKING' || msg === prefix + 'AVAILABLE' || msg === prefix + 'LU'){
-        changeMatchmakingRole(message.member, 'Potentially Available')
-      }
-      else if (msg === prefix +'DND'){
-        changeMatchmakingRole(message.member, 'Do Not Notify')
-      }
-      else if (msg === prefix +'INGAME' || msg === prefix + 'IG' || msg === prefix + 'IN-GAME'){
-        changeMatchmakingRole(message.member, 'IN-GAME')
-      }
-      else {
-        let errorMessage = '\''+ message.content + '\' is an unrecognized command.\nCurrently, supported commands are the following, preceded by a \'' + prefix + '\'\nlooking, lo,\nlurking, lu,\ningame, ig,\ndnd '
-        message.author.send(errorMessage)
-        log('Direct Message sent to ' + message.author.username + ': ' + errorMessage)
+        if (msg === prefix + 'LOOKING' || msg === prefix + 'LO') {
+          changeMatchmakingRole(message.member, platform, platform.roleIDLookingForOpponent)
+        }
+        else if (msg === prefix + 'LURKING' || msg === prefix + 'AVAILABLE' || msg === prefix + 'LU'){
+          changeMatchmakingRole(message.member, 'Potentially Available')
+        }
+        else if (msg === prefix +'DND'){
+          changeMatchmakingRole(message.member, 'Do Not Notify')
+        }
+        else if (msg === prefix +'INGAME' || msg === prefix + 'IG' || msg === prefix + 'IN-GAME'){
+          changeMatchmakingRole(message.member, 'IN-GAME')
+        }
+        else {
+          let errorMessage = '\''+ message.content + '\' is an unrecognized command.\nCurrently, supported commands are the following, preceded by a \'' + prefix + '\'\nlooking, lo,\nlurking, lu,\ningame, ig,\ndnd '
+          message.author.send(errorMessage)
+          log('Direct Message sent to ' + message.author.username + ': ' + errorMessage)
+        }
       }
     }
+  })
+
     //if the sender is not a bot, delete the message after it's been processed
     if(!sender.bot){
       //give Cordelia some time to process the message before we delete it
