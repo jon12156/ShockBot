@@ -1312,14 +1312,15 @@ log(`${newMemberName} deafened themself`)
 log(`${newMemberName} undeafended themself`)
 }*/
 })
-bot.on('presenceUpdate', (oldMember, newMember) => {
+bot.on('presenceUpdate', (oldPresence, newPresence) => {
+  let member = newPresence.member
   matchmaker.matchSet.forEach(match =>{
-    if (newMember.user.id === match.player1.user.id || newMember.user.id === match.player2.user.id) {
-      if (newMember.presence.activities && newMember.presence.activities.some(activity => activity.type === "STREAMING")){
-        log(`${newMember.user.username}'s presence changed, and they are currently streaming`)
-        log(`oldMember.presence.activities is: ${oldMember.presence.activities}`)
-        if (oldMember.presence.activities === null || !oldMember.presence.activities.some(activity => activity.type === "STREAMING")){
-          log(`${newMember.user.username} was not previously streaming and now is.\nWe're having the matchmaker update the stream links.`)
+    if (member.user.id === match.player1.user.id || member.user.id === match.player2.user.id) {
+      if (newPresence.activities && newPresence.activities.some(activity => activity.type === "STREAMING")){
+        log(`${member.user.username}'s presence changed, and they are currently streaming`)
+        log(`oldPresence.activities is: ${oldPresence.activities}`)
+        if (oldPresence.activities === null || !oldPresence.activities.some(activity => activity.type === "STREAMING")){
+          log(`${member.user.username} was not previously streaming and now is.\nWe're having the matchmaker update the stream links.`)
           matchmaker.checkAndUpdateStreamsForMatch(match)
         }
       }
