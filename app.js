@@ -661,15 +661,15 @@ class Match{
     let linkAdded = null
     //log(`(this.player1StreamURL === '') is ${this.player1StreamURL === ''}`)
     //log(`this.player1StreamURL is: ${this.player1StreamURL}`)
-    if (this.player1.presence.game && this.player1.presence.game.streaming && this.player1StreamURL === ''){
-      this.player1StreamURL = this.player1.presence.game.url
+    if (this.player1.presence.activities && this.player1.presence.activities.some(activity => activity.type === 'STREAMING') && this.player1StreamURL === ''){
+      this.player1StreamURL = this.player1.presence.activities.find(activity => activity.type === 'STREAMING').url
       linkAdded = this.player1StreamURL
     }
     //log(`streamAdded for p1 is: ${streamAdded}`)
     //log(`now, this.player1StreamURL is: ${this.player1StreamURL}`)
 
-    if (this.player2.presence.game && this.player2.presence.game.streaming &&this.player2StreamURL === ''){
-      this.player2StreamURL = this.player2.presence.game.url
+    if (this.player2.presence.activities && this.player2.presence.activities.some(activity => activity.type === 'STREAMING') && this.player2StreamURL === ''){
+      this.player2StreamURL = this.player2.presence.activities.find(activity => activity.type === 'STREAMING').url
       linkAdded = this.player2StreamURL
     }
 
@@ -1320,11 +1320,10 @@ log(`${newMemberName} undeafended themself`)
 bot.on('presenceUpdate', (oldMember, newMember) => {
   matchmaker.matchSet.forEach(match =>{
     if (newMember.user.id === match.player1.user.id || newMember.user.id === match.player2.user.id) {
-      if (newMember.presence.game && newMember.presence.game.streaming){
+      if (newMember.presence.activities && newMember.presence.activities.some(activity => activity.type === "STREAMING")){
         log(`${newMember.user.username}'s presence changed, and they are currently streaming`)
-        log(`oldMember.presence.game is: ${oldMember.presence.game}`)
-        //log(`oldMember.presence.game.streaming is: ${oldMember.presence.game.streaming}`)
-        if (oldMember.presence.game === null || !oldMember.presence.game.streaming){
+        log(`oldMember.presence.activities is: ${oldMember.presence.activities}`)
+        if (oldMember.presence.activities === null || !oldMember.presence.activities.some(activity => activity.type === "STREAMING")){
           log(`${newMember.user.username} was not previously streaming and now is.\nWe're having the matchmaker update the stream links.`)
           matchmaker.checkAndUpdateStreamsForMatch(match)
         }
