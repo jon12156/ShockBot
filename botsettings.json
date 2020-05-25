@@ -3,7 +3,7 @@
   "prefix": ">",
   "matchmakingPlatforms": [
     {
-      "platformName": ""
+      "platformName": "",
       "textChannelIDForMatchmaking": "",
       "messageIDForMatchmakingRoles": "",
       "roleIDLookingForOpponent": ""  ,
@@ -47,7 +47,6 @@
   "roleIDMasterPending": "",
   "roleIDDiamondPending": "",
   "roleIDPlatinumPending": "",
-  "roleIDSpectators": "",
   "channelIDMaster": "",
   "channelIDDiamond": "",
   "channelIDPlatinum": "",
