@@ -3,10 +3,10 @@ const botSettings = require("./botsettings.json")
 var Discord = require('discord.js');
 const fs = require('fs');
 var bot = new Discord.Client({autoReconnect:true});
-var matchmakingTextChannel;
+//var matchmakingTextChannel;
 var streamAlertsChannel;
 var surveysTextChannel;
-var messageForMatchmakingRoles;
+//var messageForMatchmakingRoles;
 var messageForSkillSurvey;
 var matchmaker;
 var lastMatchmakingActivity
@@ -18,7 +18,6 @@ const textChannelIDForWelcome = botSettings.textChannelIDForWelcome
 const textChannelIDForSetupHelp = botSettings.textChannelIDForSetupHelp
 const textChannelIDForSkillVerification = botSettings.textChannelIDForSkillVerification
 const channelIDStreamAlerts = botSettings.channelIDStreamAlerts
-const messageIDForMatchmakingRoles = botSettings.messageIDForMatchmakingRoles
 const roleIDNewMember = botSettings.roleIDNewMember
 const roleIDInactive = botSettings.roleIDInactive
 const reactionIdentLookingForOpponent = botSettings.reactionIdentLookingForOpponent
@@ -198,26 +197,30 @@ class Matchmaker{
         }
       })
     }).then(() =>{
-      // also remove any other messages saying the member "is looking", perhaps sent by cordelia
-      matchmakingTextChannel.messages.fetch().then(function(messageCollection){
-        messageCollection.forEach(function(message, id){
-          let msg = message.content.toUpperCase()
-          //exceptions:
-          // don't delete the messageForMatchmakingRoles
-          if(id !== messageIDForMatchmakingRoles){
-            //delete messages that say the member is looking
-            if(msg.includes(member.id) && msg.includes('IS LOOKING')){
+      matchmakingPlatforms.forEach(platform =>
+        {
+          // also remove any other messages saying the member "is looking", perhaps sent by cordelia
+          platform.matchmakingTextChannel.messages.fetch().then(function(messageCollection){
+            messageCollection.forEach(function(message, id){
+              let msg = message.content.toUpperCase()
+              //exceptions:
+              // don't delete the messageForMatchmakingRoles
+              if(id !== platform.messageIDForMatchmakingRoles){
+                //delete messages that say the member is looking
+                if(msg.includes(member.id) && msg.includes('IS LOOKING')){
 
-              log('deleting message: id:' + id + ' Message Content:' + message)
-              message.delete()
-              .then(log('deleted matchSeek message'))
-              .catch(() => undefined);
-            }else{
-              //used to log which messages were not being deleted here.
-              //log('not deleting: id:' + id + ' Message Content:' + message)
-            }
-          }
+                  log('deleting message: id:' + id + ' Message Content:' + message)
+                  message.delete()
+                  .then(log('deleted matchSeek message'))
+                  .catch(() => undefined);
+                }else{
+                  //used to log which messages were not being deleted here.
+                  //log('not deleting: id:' + id + ' Message Content:' + message)
+                }
+              }
+            })
         })
+
 
       }).catch(function(){
         log('Something went wrong with deleting the messages')
@@ -258,30 +261,32 @@ class Matchmaker{
     })
   }
 
-  removeLookingMessages(member){
+  removeLookingMessages(member, platformToRemoveFrom){
+    //remove from all platforms if platform not specified
     // remove any other messages saying the member "is looking", perhaps sent by cordelia
-    matchmakingTextChannel.messages.fetch().then(function(messageCollection){
-      messageCollection.forEach(function(message, id){
-        let msg = message.content.toUpperCase()
-        //exceptions:
-        // don't delete the messageForMatchmakingRoles
-        if(id !== messageIDForMatchmakingRoles){
-          //delete messages that say the member is looking
-          if(msg.includes(member.id) && msg.includes('IS LOOKING')){
+    matchmakingPlatforms.forEach(platform =>{
+      if (platformToRemoveFrom === null || platformToRemoveFrom.name === platform.name){
+        platform.matchmakingTextChannel.messages.fetch().then(function(messageCollection){
+          messageCollection.forEach(function(message, id){
+            let msg = message.content.toUpperCase()
+            //exceptions:
+            // don't delete the messageForMatchmakingRoles
+            if(id !== platform.messageIDForMatchmakingRoles){
+              //delete messages that say the member is looking
+              if(msg.includes(member.id) && msg.includes('IS LOOKING')){
 
-            log('deleting message: id:' + id + ' Message Content:' + message)
-            message.delete()
-            .then(log('deleted matchSeek message'))
-            .catch(() => undefined);
-          }else{
-            //used to log which messages were not being deleted here.
-            //log('not deleting: id:' + id + ' Message Content:' + message)
-          }
-        }
-      })
-
-    }).catch(function(){
-      log('Something went wrong with deleting the messages')
+                log('deleting message: id:' + id + ' Message Content:' + message)
+                message.delete()
+                .then(log('deleted matchSeek message'))
+                .catch(() => undefined);
+              }else{
+                //used to log which messages were not being deleted here.
+                //log('not deleting: id:' + id + ' Message Content:' + message)
+              }
+            }
+          })
+        })
+      }
     })
   }
 
@@ -997,9 +1002,8 @@ bot.on('message', message => {
       }
     }
   })
-
-    //if the sender is not a bot, delete the message after it's been processed
-    if(!sender.bot){
+  //if the sender is not a bot, delete the message after it's been processed
+  if(!sender.bot){
       //give Cordelia some time to process the message before we delete it
       if (msg.startsWith(cordeliasPrefix)){
         sleep(3000).then(() => {
@@ -1030,7 +1034,6 @@ bot.on('message', message => {
         }
       }
     }
-  }
 });
 
 bot.on('guildMemberUpdate', (oldMember, newMember) => {
@@ -1062,15 +1065,46 @@ bot.on('ready', () => {
   var errorCount = 0;
   matchmaker = new Matchmaker();
   //log(matchmaker);
-  try { //try to find the matchmaking channel
-    log(`textChannelIDForMatchmaking = ${textChannelIDForMatchmaking}`)
-    matchmakingTextChannel = bot.channels.cache.get(textChannelIDForMatchmaking)
-    log(`found the matchmaking channel. ID: ${matchmakingTextChannel.id}`)
-  }
-  catch (e) {
-    log('ERROR: Could not find the matchmaking channel')
-    errorCount += 1;
-  }
+  matchmakingPlatforms.forEach(platform =>{
+    try { //try to find the matchmaking channel
+      log(`textChannelIDForMatchmaking = ${platform.textChannelIDForMatchmaking}`)
+      platform.matchmakingTextChannel = bot.channels.cache.get(platform.textChannelIDForMatchmaking)
+      log(`found the matchmaking channel. ID: ${matchmakingTextChannel.id}`)
+    }
+    catch (e) {
+      log(`ERROR: Could not find the matchmaking channel for platform ${platform.platformName}`)
+      errorCount += 1;
+    }
+    //try { //try to fetch the message with messageIDForMatchmakingRoles
+    platform.matchmakingTextChannel.messages.fetch(platform.messageIDForMatchmakingRoles).then(function(fetchedMessage){
+      log('found the message for Matchmaking Role assignment')
+      messageForMatchmakingRoles = fetchedMessage
+      try{
+        messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
+          matchmakingMessageReaction.users.fetch();
+        });
+        log('fetched users who had previously reacted to the matchmaking message')
+      }
+      catch (err){
+        log('ERROR fetching users who had previously reacted to the matchmaking message')
+        log(err)
+      }
+      sleep(1).then(async function(){
+        //TO DO: check if we have added the appropriate reactions to the messageForMatchmakingRoles
+        //if not, add them
+        //for now, just add the appropriate reactions
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentLookingForOpponent);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentPotentiallyAvailable);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentInGame);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentDND);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentSpectator);
+        //await messageForMatchmakingRoles.react(reactionIdentLogMatchSeeks);
+        log('reactions added to the messageForMatchmakingRoles')
+      });
+    }).catch(function(e){
+      log('ERROR: Could not find the message for Matchmaking Role assignment')
+    });
+  })
   try { //try to find the matchmaking channel
     surveysTextChannel = bot.channels.cache.get(textChannelIDForSurveys)
     log('found the Surveys channel')
@@ -1103,35 +1137,7 @@ bot.on('ready', () => {
   */
   //update the skillSurveyMessage
 
-  //try { //try to fetch the message with messageIDForMatchmakingRoles
-  matchmakingTextChannel.messages.fetch(messageIDForMatchmakingRoles).then(function(fetchedMessage){
-    log('found the message for Matchmaking Role assignment')
-    messageForMatchmakingRoles = fetchedMessage
-    try{
-      messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
-        matchmakingMessageReaction.users.fetch();
-      });
-      log('fetched users who had previously reacted to the matchmaking message')
-    }
-    catch (err){
-      log('ERROR fetching users who had previously reacted to the matchmaking message')
-      log(err)
-    }
-    sleep(1).then(async function(){
-      //TO DO: check if we have added the appropriate reactions to the messageForMatchmakingRoles
-      //if not, add them
-      //for now, just add the appropriate reactions
-      await messageForMatchmakingRoles.react(reactionIdentLookingForOpponent);
-      await messageForMatchmakingRoles.react(reactionIdentPotentiallyAvailable);
-      await messageForMatchmakingRoles.react(reactionIdentInGame);
-      await messageForMatchmakingRoles.react(reactionIdentDND);
-      await messageForMatchmakingRoles.react(reactionIdentSpectator);
-      //await messageForMatchmakingRoles.react(reactionIdentLogMatchSeeks);
-      log('reactions added to the messageForMatchmakingRoles')
-    });
-  }).catch(function(e){
-    log('ERROR: Could not find the message for Matchmaking Role assignment')
-  });
+
   // place reactions on the SkillSurveyMessage
   surveysTextChannel.messages.fetch(messageIDForSkillSurvey).then(function(fetchedMessage2){
     log('found the message for the Skill Survey')
@@ -1159,7 +1165,7 @@ bot.on('ready', () => {
 
       log('reactions added to the message for Skill Survey')
       //Run these only once, then comment them out
-      //bot.channels.cache.get(textChannelIDForMatchmaking).send(`Click a reaction to change your matchmaking status\n:white_check_mark: Looking for Opponent\n:bell: Potentially Available\n:no_entry: In-Game\n:no_bell: Do Not Notify / Can't play right now\n\nIf a player is already looking for an opponent, you can offer to play with them by clicking the :crossed_swords:\nThey can then accept by clicking :ok:\nNote: You can also add a custom message to your match request by sending a message in here.\n:lock: or :unlock: indicate whether a match's channels are locked.\nIf unlocked, you can click the :microphone2: to get access to the match's channels as a "spectator."\n:eyes: Toggles on/off pings for new spectatable matches. (@Spectators role)\n\nNeed help?  See <#${textChannelIDForWelcome}> or ask in <#${textChannelIDForSetupHelp}>`)
+      //bot.channels.cache.get(platform.textChannelIDForMatchmaking).send(`Click a reaction to change your matchmaking status\n:white_check_mark: Looking for Opponent\n:bell: Potentially Available\n:no_entry: In-Game\n:no_bell: Do Not Notify / Can't play right now\n\nIf a player is already looking for an opponent, you can offer to play with them by clicking the :crossed_swords:\nThey can then accept by clicking :ok:\nNote: You can also add a custom message to your match request by sending a message in here.\n:lock: or :unlock: indicate whether a match's channels are locked.\nIf unlocked, you can click the :microphone2: to get access to the match's channels as a "spectator."\n:eyes: Toggles on/off pings for new spectatable matches. (@Spectators role)\n\nNeed help?  See <#${textChannelIDForWelcome}> or ask in <#${textChannelIDForSetupHelp}>`)
 
       //bot.channels.cache.get(textChannelIDForSurveys).send(skillSurveyMessageContent)
 
@@ -1452,7 +1458,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           }
           else{
             if (!matchOfControlPanelMessage.locked){
-              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted}, the chat is already unlocked.\nPlayers can get permissions to view the channels by clicking the :microphone2: on your match announcement in <#${textChannelIDForMatchmaking}>`)
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted}, the chat is already unlocked.\nPlayers can get permissions to view the channels by clicking the :microphone2: on your match announcement in <#${match.announceChannel}>`)
             }
             else{
               matchOfControlPanelMessage.unlockChat()
@@ -1482,71 +1488,74 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           return
         }
       }
-      //check if the message they reacted to the one for changing matchmaking status/role
-      if (messageReaction.message.id === messageIDForMatchmakingRoles || reactionIsToAMatchControlPanelMessage) {
-        log('A user reacted with ' + emoji + ' to the matchmakingRoles or Match Control Panel Message');
-        //Looking reaction
-        if(emoji === reactionIdentLookingForOpponent){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+      matchmakingPlatforms.foreach(platform =>{
+        //check if the message they reacted to the one for changing matchmaking status/role
+        if (messageReaction.message.id === platform.messageIDForMatchmakingRoles || reactionIsToAMatchControlPanelMessage) {
+          log('A user reacted with ' + emoji + ' to the matchmakingRoles or Match Control Panel Message');
+          //Looking reaction
+          if(emoji === reactionIdentLookingForOpponent){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            changeMatchmakingRole(memberThatReacted, 'Looking For Opponent');
           }
-          changeMatchmakingRole(memberThatReacted, 'Looking For Opponent');
-        }
-        else if(emoji === reactionIdentPotentiallyAvailable){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+          else if(emoji === reactionIdentPotentiallyAvailable){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            changeMatchmakingRole(memberThatReacted, 'Potentially Available');
           }
-          changeMatchmakingRole(memberThatReacted, 'Potentially Available');
-        }
-        else if(emoji === reactionIdentInGame){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+          else if(emoji === reactionIdentInGame){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            changeMatchmakingRole(memberThatReacted, 'IN-GAME');
           }
-          changeMatchmakingRole(memberThatReacted, 'IN-GAME');
-        }
-        else if(emoji === reactionIdentDND){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+          else if(emoji === reactionIdentDND){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            log(memberThatReacted.user.username + ' reacted Do Not Notify')
+            changeMatchmakingRole(memberThatReacted, 'Do Not Notify');
           }
-          log(memberThatReacted.user.username + ' reacted Do Not Notify')
-          changeMatchmakingRole(memberThatReacted, 'Do Not Notify');
-        }
-        else if(emoji === reactionIdentSpectator){
-          log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
-          var role = memberThatReacted.guild.roles.get(roleIDSpectators);
-          if(memberThatReacted.roles.cache.has(roleIDSpectators)) {
-            memberThatReacted.roles.remove(role)
-            memberThatReacted.send("I've removed your @Spectators role")
-          }
-          else{
-            memberThatReacted.roles.remove([roleIDNewMember,roleIDInactive])
-            memberThatReacted.roles.add(role)
-            memberThatReacted.send("I've assigned you the @Spectators role")
-          }
+          else if(emoji === reactionIdentSpectator){
+            log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
+            var role = memberThatReacted.guild.roles.get(roleIDSpectators);
+            if(memberThatReacted.roles.cache.has(roleIDSpectators)) {
+              memberThatReacted.roles.remove(role)
+              memberThatReacted.send("I've removed your @Spectators role")
+            }
+            else{
+              memberThatReacted.roles.remove([roleIDNewMember,roleIDInactive])
+              memberThatReacted.roles.add(role)
+              memberThatReacted.send("I've assigned you the @Spectators role")
+            }
 
-        }
-        else if(emoji === reactionIdentLogMatchSeeks){
-          log('matchSeeks:')
-          matchmaker.matchSeekSet.forEach(function(matchSeek){
-            log('matchSeek seeker: ' + matchSeek.seeker.user.username)
-            log('challenges: ')
-            matchSeek.challenges.forEach(function(challenge){
-              log('challenger: ' + challenge.challenger.user.username)
+          }
+          else if(emoji === reactionIdentLogMatchSeeks){
+            log('matchSeeks:')
+            matchmaker.matchSeekSet.forEach(function(matchSeek){
+              log('matchSeek seeker: ' + matchSeek.seeker.user.username)
+              log('challenges: ')
+              matchSeek.challenges.forEach(function(challenge){
+                log('challenger: ' + challenge.challenger.user.username)
+              })
             })
-          })
-          matchmaker.matchSet.forEach(match =>{
-            matchmaker.checkAndUpdateStreamsForMatch(match)
-          })
-        }else log(memberThatReacted.user.username + ' reacted to messageForMatchmakingRoles with an invalid emoji')
-        //remove the user's reaction
-        messageReaction.users.remove(memberThatReacted)
-      }
+            matchmaker.matchSet.forEach(match =>{
+              matchmaker.checkAndUpdateStreamsForMatch(match)
+            })
+          }else log(memberThatReacted.user.username + ' reacted to messageForMatchmakingRoles with an invalid emoji')
+          //remove the user's reaction
+          messageReaction.users.remove(memberThatReacted)
+        }
+      })
+
       //if the message is the SkillSurveyMessage
-      else if (messageReaction.message.id === messageIDForSkillSurvey){
+      if (messageReaction.message.id === messageIDForSkillSurvey){
         log(memberThatReacted.user.username + ' reacted to messageForSkillSurvey with emoji with Identifier: ' + emoji)
         let reactionWasValid = true
         switch(emoji){
