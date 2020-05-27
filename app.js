@@ -20,13 +20,8 @@ const textChannelIDForSkillVerification = botSettings.textChannelIDForSkillVerif
 const channelIDStreamAlerts = botSettings.channelIDStreamAlerts
 const roleIDNewMember = botSettings.roleIDNewMember
 const roleIDInactive = botSettings.roleIDInactive
-const reactionIdentLookingForOpponent = botSettings.reactionIdentLookingForOpponent
-const reactionIdentPotentiallyAvailable = botSettings.reactionIdentPotentiallyAvailable //:regional_indicator_l:
-const reactionIdentInGame = botSettings.reactionIdentInGame //:no_entry:
-const reactionIdentDND = botSettings.reactionIdentDND //:no_entry_sign:
 const reactionIdentLock = botSettings.reactionIdentLock //:lock:
 const reactionIdentUnlock = botSettings.reactionIdentUnlock //:unlock:
-const reactionIdentSpectator = botSettings.reactionIdentSpectator //:eyes:
 const unicodeLock = botSettings.unicodeLock //🔒
 const unicodeUnlock = botSettings.unicodeUnlock //🔓
 const reactionIdentGetMatchChannelPermissions = botSettings.reactionIdentGetMatchChannelPermissions //:microphone:
@@ -138,7 +133,7 @@ class Matchmaker{
     let skillRoleString = getSkillRoleString(matchSeek.seeker);
     if (skillRoleString !== '') messageContent += ` (${skillRoleString})`
     messageContent += ' **is looking for an opponent!**';
-    if (matchSeek.pingAllowed) messageContent += `\n\n<@&${roleIDLookingForOpponent}> <@&${roleIDPotentiallyAvailable}>`;
+    if (matchSeek.pingAllowed) messageContent += `\n\n<@&${matchmakingPlatforms[matchSeek.platformIndex].roleIDLookingForOpponent}> <@&${matchmakingPlatforms[matchSeek.platformIndex].roleIDPotentiallyAvailable}>`;
     let message;
     try {
       message = await matchSeek.textChannel.send(messageContent);
@@ -220,10 +215,6 @@ class Matchmaker{
               }
             })
         })
-
-
-      }).catch(function(){
-        log('Something went wrong with deleting the messages')
       })
     })
 
@@ -289,7 +280,6 @@ class Matchmaker{
       }
     })
   }
-
   async addMatch(match){
     log('beginning of matchmaker addMatch method')
     matchmaker.removeLookingMessages(match.player1)
@@ -499,6 +489,7 @@ class Match{
     this.player1StreamURL = ''
     this.player2StreamURL = ''
     this.textChannel = null
+    this.platformName = platformName
     this.announceChannel = announceChannel // the channel where it is announced the match has started.  may or may not use this
     this.matchAnnouncement = null
     this.voiceChannel = null
@@ -623,7 +614,7 @@ class Match{
           await this.controlPanelMessage.react(reactionIdentUnlock)
           await this.controlPanelMessage.react(reactionIdentLock)
           await this.controlPanelMessage.react(reactionIdentLookingForOpponent)
-          await this.controlPanelMessage.react(reactionIdentPotentiallyAvailable)
+          await this.controlPanelMessage.react(platform.reactionIdentPotentiallyAvailable)
           await this.controlPanelMessage.react(reactionIdentDND)
         })
         .catch(err =>{
@@ -755,6 +746,7 @@ class MatchSeek {
   constructor(seeker, textChannel, pingAllowed) {
     this.seeker = seeker;
     this.textChannel = textChannel;
+    this.platformIndex = findIndexOfRelatedPlatform(textChannel)
     this.challenges = new Set();
     this.pingAllowed = pingAllowed;
     this.message = null;
@@ -821,9 +813,35 @@ class Challenge {
   }
 }
 
-function changeMatchmakingRole(member, platform, newRoleID) {
+//determine which platform uses the newRoleID
+function findIndexOfRelatedPlatform(searchTerm){
+  log(`start of function findIndexOfRelatedPlatform`)
+  return matchmakingPlatforms.findIndex(function(platform){
+    return Object.keys(platform).findIndex(key => platform[key] === searchTerm) !== -1
+  })
+  //returns -1 if platform isn't found
+}
+
+function findPlatformHavingName(name){
+  return matchmakingPlatforms.find(platform => platform.platformName === name)
+
+}
+
+async function changeMatchmakingRole(member, newRoleID) {
   //if the member is a bot, don't do anything
   if (member.bot) return;
+  //determine which platform uses the newRoleID
+  var platformIndex
+  var platform = null
+  await (platformIndex = findIndexOfRelatedPlatform(newRoleID))
+  if (platform === -1) {
+    log(`Error: paltform not found with given newRoleID ${newRoleID}`)
+    return
+  }
+  else{
+    platform = matchmakingPlatforms[platformIndex]
+    log(`platform found for role passed to function changeMatchmakingRole`)
+  }
   lastMatchmakingActivity[member.id] = Date.now()
   //do stuff depending on what matchmaking role roleString represents
   if (newRoleID === platform.roleIDLookingForOpponent) {
@@ -831,7 +849,7 @@ function changeMatchmakingRole(member, platform, newRoleID) {
     // pause a moment for roles to be finished being removed
     sleep(500).then(() => {
       //assign '@looking for Opponent'
-      var role = member.guild.roles.cache.find(x => x.id === roleIDLookingForOpponent);
+      var role = member.guild.roles.cache.find(x => x.id === platform.roleIDLookingForOpponent);
       member.roles.add(role);
       log('Added role \'@Looking for Opponent\' for platform ' + platform.platformName + 'to member ' + member.user.username);
 
@@ -872,7 +890,7 @@ function changeMatchmakingRole(member, platform, newRoleID) {
 return;
 }
 if (newRoleID === platform.roleIDPotentiallyAvailable) {
-  removeAllMatchmakingRoles(member, platform);
+  removeAllMatchmakingRoles(member, platformIndex);
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
@@ -883,24 +901,24 @@ if (newRoleID === platform.roleIDPotentiallyAvailable) {
   })
   return;
 }
-if (roleString.toUpperCase() === 'DO NOT NOTIFY') {
-  removeAllMatchmakingRoles(member); //todo: have this function remove all matchmaking roles on all platforms if a platform is not specified.
+if (newRoleID === platform.roleIDDoNotNotify) {
+  removeAllMatchmakingRoles(member, platformIndex); //todo: have this function remove all matchmaking roles on all platforms if a platform is not specified.
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === roleIDDoNotNotify);
+    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDDoNotNotify);
     member.roles.add(role);
     log('Added role \'@Do Not Notify\' to member ' + member.user.username);
     //cancel any existing game seek
   })
   return;
 }
-if (roleString.toUpperCase() === 'IN-GAME') {
-  removeAllMatchmakingRoles(member);
+if (newRoleID === platform.roleIDInGame) {
+  removeAllMatchmakingRoles(member, platformIndex);
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === roleIDInGame);
+    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDInGame);
     member.roles.add(role);
     log('Added role \'@In-Game\' to member ' + member.user.username);
     //cancel any existing game seek
@@ -925,9 +943,15 @@ sleep(500).then(() => {
 // Do the stuff that should follow the removeAllMatchmakingRoles function call
 })
 */
-function removeAllMatchmakingRoles(member) {
-  member.roles.remove([roleIDInGame,roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
-  log('removing all matchmaking roles from ' + member.user.username + '...')
+function removeAllMatchmakingRoles(member, platformIndex) {
+  matchmakingPlatforms.forEach(platform =>{
+    //removes all matchmaking roles for all platforms if platformIndex isn't specified
+    if platformIndex === null || platform.platformName === matchmakingPlatforms[platformIndex].platformName{
+      member.roles.remove([platform.roleIDInGame,roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
+      log(`removing all matchmaking roles for platform ${platform.platformName} from ${member.user.username}...`)
+    }
+
+  })
 
 }
 function removeAllSkillRoles(member) {
@@ -983,7 +1007,7 @@ bot.on('message', message => {
       if (msg.startsWith(prefix)){
 
         if (msg === prefix + 'LOOKING' || msg === prefix + 'LO') {
-          changeMatchmakingRole(message.member, platform, platform.roleIDLookingForOpponent)
+          changeMatchmakingRole(message.member, platform.roleIDLookingForOpponent)
         }
         else if (msg === prefix + 'LURKING' || msg === prefix + 'AVAILABLE' || msg === prefix + 'LU'){
           changeMatchmakingRole(message.member, 'Potentially Available')
@@ -1038,24 +1062,27 @@ bot.on('message', message => {
 
 bot.on('guildMemberUpdate', (oldMember, newMember) => {
   //if a member loses their '@looking For Opponent' Role
-  if(oldMember.roles.cache.some(role => role.id === roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === roleIDLookingForOpponent)){
-    //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
-    log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
-    matchmaker.removeMatchSeek(newMember);
-  }
-  if(newMember.roles.cache.some(role => role.id === roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === roleIDDoNotNotify)){
-    log(`${newMember.user.username} changed to Do Not Notify`)
-    matchmaker.cancelSeeksAndChallenges(newMember);
-  }
-  if(newMember.roles.cache.some(role => role.id === roleIDInGame) && !oldMember.roles.cache.some(role => role.id === roleIDInGame)){
-    log(`${newMember.user.username} changed to In-Game`)
-    matchmaker.cancelSeeksAndChallenges(newMember);
-  }
-  if(oldMember.roles.cache.some(role => role.id === roleIDInGame) && !newMember.roles.cache.some(role => role.id === roleIDInGame)){
-    // member was in-game and now is not. End any match he was in.
-    log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
-    matchmaker.endMatch(newMember);
-  }
+  matchmakingPlatforms.forEach(platform =>{
+    if(oldMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent)){
+      //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
+      log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
+      matchmaker.removeMatchSeek(newMember);
+    }
+    if(newMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify)){
+      log(`${newMember.user.username} changed to Do Not Notify`)
+      matchmaker.cancelSeeksAndChallenges(newMember);
+    }
+    if(newMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !oldMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
+      log(`${newMember.user.username} changed to In-Game`)
+      matchmaker.cancelSeeksAndChallenges(newMember);
+    }
+    if(oldMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !newMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
+      // member was in-game and now is not. End any match he was in.
+      log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
+      matchmaker.endMatch(newMember);
+    }
+  })
+
 });
 
 // Listener Event: Bot Launched
@@ -1069,18 +1096,19 @@ bot.on('ready', () => {
     try { //try to find the matchmaking channel
       log(`textChannelIDForMatchmaking = ${platform.textChannelIDForMatchmaking}`)
       platform.matchmakingTextChannel = bot.channels.cache.get(platform.textChannelIDForMatchmaking)
-      log(`found the matchmaking channel. ID: ${matchmakingTextChannel.id}`)
+      log(`found the matchmaking channel. ID: ${platform.matchmakingTextChannel.id}`)
     }
     catch (e) {
       log(`ERROR: Could not find the matchmaking channel for platform ${platform.platformName}`)
+      log(e)
       errorCount += 1;
     }
     //try { //try to fetch the message with messageIDForMatchmakingRoles
     platform.matchmakingTextChannel.messages.fetch(platform.messageIDForMatchmakingRoles).then(function(fetchedMessage){
       log('found the message for Matchmaking Role assignment')
-      messageForMatchmakingRoles = fetchedMessage
+      platform.messageForMatchmakingRoles = fetchedMessage
       try{
-        messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
+        platform.messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
           matchmakingMessageReaction.users.fetch();
         });
         log('fetched users who had previously reacted to the matchmaking message')
@@ -1488,46 +1516,46 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           return
         }
       }
-      matchmakingPlatforms.foreach(platform =>{
+      matchmakingPlatforms.forEach(platform =>{
         //check if the message they reacted to the one for changing matchmaking status/role
         if (messageReaction.message.id === platform.messageIDForMatchmakingRoles || reactionIsToAMatchControlPanelMessage) {
           log('A user reacted with ' + emoji + ' to the matchmakingRoles or Match Control Panel Message');
           //Looking reaction
-          if(emoji === reactionIdentLookingForOpponent){
+          if(emoji === platform.reactionIdentLookingForOpponent){
             if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
               matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
               matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
             }
-            changeMatchmakingRole(memberThatReacted, 'Looking For Opponent');
+            changeMatchmakingRole(memberThatReacted, platform.roleIDLookingForOpponent);
           }
-          else if(emoji === reactionIdentPotentiallyAvailable){
+          else if(emoji === platform.reactionIdentPotentiallyAvailable){
             if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
               matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
               matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
             }
-            changeMatchmakingRole(memberThatReacted, 'Potentially Available');
+            changeMatchmakingRole(memberThatReacted, platform.roleIDPotentiallyAvailable);
           }
-          else if(emoji === reactionIdentInGame){
+          else if(emoji === platform.reactionIdentInGame){
             if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
               matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
               matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
             }
-            changeMatchmakingRole(memberThatReacted, 'IN-GAME');
+            changeMatchmakingRole(memberThatReacted, platform.roleIDInGame);
           }
-          else if(emoji === reactionIdentDND){
+          else if(emoji === platform.reactionIdentDND){
             if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
               matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
               matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
             }
             log(memberThatReacted.user.username + ' reacted Do Not Notify')
-            changeMatchmakingRole(memberThatReacted, 'Do Not Notify');
+            changeMatchmakingRole(memberThatReacted, platform.roleIDDoNotNotify);
           }
-          else if(emoji === reactionIdentSpectator){
+          else if(emoji === platform.reactionIdentSpectator){
             log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
-            var role = memberThatReacted.guild.roles.get(roleIDSpectators);
-            if(memberThatReacted.roles.cache.has(roleIDSpectators)) {
+            var role = memberThatReacted.guild.roles.get(platform.roleIDSpectators);
+            if(memberThatReacted.roles.cache.has(platform.roleIDSpectators)) {
               memberThatReacted.roles.remove(role)
-              memberThatReacted.send("I've removed your @Spectators role")
+              memberThatReacted.send(`I've removed your Spectators role for ${platform.platformName}`)
             }
             else{
               memberThatReacted.roles.remove([roleIDNewMember,roleIDInactive])
