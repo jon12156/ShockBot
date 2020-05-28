@@ -366,7 +366,7 @@ class Matchmaker{
           if (match.player1 === member ){
             if (match.player2.roles.cache.has(roleIDLookingForOpponent)
              && match.player2.roles.cache.has(roleIDInGame)){
-              match.player2.roles.remove(member.guild.roles.get(roleIDInGame))
+              match.player2.roles.remove(member.guild.roles.cache.get(roleIDInGame))
             }
             else{
               changeMatchmakingRole(match.player2, 'POTENTIALLY AVAILABLE')
@@ -375,7 +375,7 @@ class Matchmaker{
           if (match.player2 === member ){
             if (match.player1.roles.cache.has(roleIDLookingForOpponent)
              && match.player1.roles.cache.has(roleIDInGame)){
-              match.player1.roles.remove(member.guild.roles.get(roleIDInGame))
+              match.player1.roles.remove(member.guild.roles.cache.get(roleIDInGame))
             }
             else{
               changeMatchmakingRole(match.player1, 'POTENTIALLY AVAILABLE')
@@ -1407,7 +1407,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} locked the match chat channels`)
               log(`${user.username} locked their match chat channels`)
               //then also remove any reactions for /:lock:
-              unlockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.get("🔓")
+              unlockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.cache.get("🔓")
               unlockReaction.users.forEach(reactionUser => {
                 if (reactionUser.id !== bot.user.id){
                   unlockReaction.users.remove(reactionUser)
@@ -1415,13 +1415,13 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               })
               //add reaction(s) to the match announcment indicating chat is locked, and remove buttons for people to join and that indicate the match is not locked.
               sleep(1).then(async () => {
-                unlockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.get(unicodeUnlock)
+                unlockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeUnlock)
                 if (unlockReaction) {
                   unlockReaction.users.forEach(reactionUser => {
                     unlockReaction.users.remove(reactionUser)
                   })
                 }
-                getMatchChannelPermissionsReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.get(unicodeGetMatchChannelPermissions)
+                getMatchChannelPermissionsReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeGetMatchChannelPermissions)
                 if (getMatchChannelPermissionsReaction) {
                   getMatchChannelPermissionsReaction.users.forEach(reactionUser => {
                     getMatchChannelPermissionsReaction.users.remove(reactionUser)
@@ -1454,7 +1454,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} unlocked the match chat channels`)
               log(`${user.username} unlocked the match chat channels`)
               //then also remove any reactions for /:lock: from the control panel message
-              lockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.get("🔒")
+              lockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.cache.get("🔒")
               lockReaction.users.forEach(reactionUser => {
                 if (reactionUser.id !== bot.user.id){
                   lockReaction.users.remove(reactionUser)
@@ -1462,7 +1462,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               })
               //add reaction(s) to the match announcment indicating chat is unlocked, and a button for people to join.
               sleep(1).then(async () => {
-                lockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.get(unicodeLock)
+                lockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeLock)
                 if (lockReaction) {
                   lockReaction.users.forEach(reactionUser => {
                     lockReaction.users.remove(reactionUser)
@@ -1512,7 +1512,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
         }
         else if(emoji === reactionIdentSpectator){
           log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
-          var role = memberThatReacted.guild.roles.get(roleIDSpectators);
+          var role = memberThatReacted.guild.roles.cache.get(roleIDSpectators);
           if(memberThatReacted.roles.cache.has(roleIDSpectators)) {
             memberThatReacted.roles.remove(role)
             memberThatReacted.send("I've removed your @Spectators role")
