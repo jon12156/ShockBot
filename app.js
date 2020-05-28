@@ -286,10 +286,13 @@ class Matchmaker{
     matchmaker.removeLookingMessages(match.player2)
     matchmaker.endMatch(match.player1);
     matchmaker.endMatch(match.player2);
+    var platformIndex = findPlatformHavingName(match.platformName)
     sleep(500).then(() => {
       this.matchSet.add(match);
-      changeMatchmakingRole(match.player1, 'IN-GAME')
-      changeMatchmakingRole(match.player2, 'IN-GAME')
+      removeAllMatchmakingRoles(match.player1) //note: from all platforms when we've found a match
+      removeAllMatchmakingRoles(match.player2) 
+      changeMatchmakingRole(match.player1, matchmakingPlatforms[platformIndex].roleIDInGame)
+      changeMatchmakingRole(match.player2, matchmakingPlatforms[platformIndex].roleIDInGame)
       match.createVoiceChannel()
       match.createTextChannel()
       .then(() =>{
@@ -945,9 +948,9 @@ sleep(500).then(() => {
 */
 function removeAllMatchmakingRoles(member, platformIndex) {
   matchmakingPlatforms.forEach(platform =>{
-    //removes all matchmaking roles for all platforms if platformIndex isn't specified
-    if platformIndex === null || platform.platformName === matchmakingPlatforms[platformIndex].platformName{
-      member.roles.remove([platform.roleIDInGame,roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
+    //removes all matchmaking roles a given platform, or for all platforms if platformIndex isn't specified
+    if (platformIndex === null || platform.platformName === matchmakingPlatforms[platformIndex].platformName){
+      member.roles.remove([platform.roleIDInGame,platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
       log(`removing all matchmaking roles for platform ${platform.platformName} from ${member.user.username}...`)
     }
 
