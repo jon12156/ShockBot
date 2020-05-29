@@ -1555,7 +1555,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           }
           else if(emoji === platform.reactionIdentSpectator){
             log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
-            var role = memberThatReacted.guild.roles.get(platform.roleIDSpectators);
+            var role = memberThatReacted.guild.roles.cache.get(platform.roleIDSpectators);
             if(memberThatReacted.roles.cache.has(platform.roleIDSpectators)) {
               memberThatReacted.roles.remove(role)
               memberThatReacted.send(`I've removed your Spectators role for ${platform.platformName}`)
