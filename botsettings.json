@@ -78,27 +78,21 @@
   "maintenanceIntervalInMin": 10,
   "inactivityActions": [
     {
-      "roleID":"",
-      "roleName":"In-Game",
+      "roleType":"roleIDInGame",
       "timeoutInMin": 120,
-      "nextRoleID:"",
-      "nextRoleName":"Potentially Available",
+      "nextRoleType":"roleIDPotentiallyAvailable",
       "message":"Just FYI, your match channels in ServerNameHere had been open for a long time, so I've closed them and set you to \"Potentially Available.\"  Feel free to make adjustments in #matchmaking.  Thanks."
     },
     {
-      "roleID":"",
-      "roleName":"Looking For Opponent",
+      "roleType":"roleIDLookingForOpponent",
       "timeoutInMin": 180,
-      "nextRoleID:"",
-      "nextRoleName":"Potentially Available",
+      "nextRoleType":"roleIDPotentiallyAvailable",
       "message":"Your \"Looking for Opponent\" status in ServerNameHere has expired and you've been moved to \"Potentially Available.\"  Feel free to make adjustments in #matchmaking.  Thanks."
     },
     {
-      "roleID":"",
-      "roleName":"Potentially Available",
+      "roleType":"roleIDPotentiallyAvailable",
       "timeoutInMin": 10080,
-      "nextRoleID:"",
-      "nextRoleName":"Do Not Notify",
+      "nextRoleType":"roleIDDoNotNotify",
       "message":"I haven't changed your matchmaking role in the ServerNameHere server in about a week, so I'm going to stop pinging you when players are looking for opponents.  We don't want you to have to mute the server.\n\nFeel free to visit the matchmaking channel again to set your role when you want such notifications again."
     }
   ]

@@ -834,7 +834,6 @@ async function changeMatchmakingRole(member, newRoleID) {
   }
   else{
     platform = matchmakingPlatforms[platformIndex]
-    log(`platform found for role passed to function changeMatchmakingRole`)
   }
   if (!lastMatchmakingActivity[platformIndex]){
     lastMatchmakingActivity[platformIndex] = {}
@@ -943,7 +942,6 @@ sleep(500).then(() => {
 function removeAllMatchmakingRoles(member, platformIndex) {
   matchmakingPlatforms.forEach(platform =>{
     //removes all matchmaking roles a given platform, or for all platforms if platformIndex isn't specified
-    log(`platformIndex: ${platformIndex}`)
     if (typeof platformIndex == "undefined" || platform.platformName === matchmakingPlatforms[platformIndex].platformName){
       member.roles.remove([platform.roleIDInGame,platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
       log(`removing all matchmaking roles for platform ${platform.platformName} from ${member.user.username}...`)
@@ -1231,25 +1229,28 @@ function doMaintenance(){
   bot.guilds.cache.map((guild) => {
     //move members to less active roles over time
     matchmakingPlatforms.forEach(platform =>{
-      log(`for platform ${platform.platformName}`)
+      //log(`for platform ${platform.platformName}`)
       var platformIndex = findIndexOfRelatedPlatform(platform.platformName)
       inactivityActions.forEach(action =>{
-        log(`for roleType ${action.roleType}`)
+        //log(`for roleType ${action.roleType}`)
         guild.roles.cache.get(matchmakingPlatforms[platformIndex][action.roleType]).members.map(member =>{
+          //log(`for member ${member.user.username}`)
           if (!lastMatchmakingActivity[platformIndex]){
-            log(`Platform not found in lastMatchmakingActivity, adding it`)
+            //log(`Platform not found in lastMatchmakingActivity, adding it`)
             lastMatchmakingActivity[platformIndex] = {}
           }
           if (!lastMatchmakingActivity[platformIndex][member.id]){
-            log(`${member.user.username} not found in lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}]`)
-            log(`lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}][${member.user.username}'s member.id] = now`)
+            //log(`${member.user.username} not found in lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}]`)
+            //log(`lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}][${member.user.username}'s member.id] = now`)
             lastMatchmakingActivity[platformIndex][member.id] = Date.now()
-          }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[member.id]){
-            log(`time to change matchmaking role for ${member.user.username}`)
+          }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[platformIndex][member.id]){
+            //log(`time to change matchmaking role for ${member.user.username}`)
             changeMatchmakingRole(member, matchmakingPlatforms[platformIndex][action.nextRoleType])
             if (action.message && action.message != "") {
               member.send(action.message)
             }
+          }else {
+            //log(`nothing to do here`)
           }
         })
       })
