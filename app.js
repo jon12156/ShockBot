@@ -601,7 +601,7 @@ class Match{
           reject(err)
         })
         log(this.coreAnnouncementMessage)
-        let controlPanelMessageContent = `${this.player1} vs ${this.player2}\n\n**Match Control Panel**\n:unlock: (Default) Allow other people to join chat (text/voice)\n:lock: Do not allow other people to join chat\n:white_check_mark: Leave match and change me to Looking for Opponent\n:bell: Leave match and change me to Potentially Available\n:no_bell: Leave match and change me to Do Not Notify`
+        let controlPanelMessageContent = `${this.player1} vs ${this.player2}\n\n**Match Control Panel**\n:unlock: (Default) Allow other people to join chat (text/voice)\n:lock: Do not allow other people to join chat\n:white_check_mark: Look for a new opponent\n:bell: Leave match and change me to Potentially Available\n:no_bell: Leave match and change me to Do Not Notify`
         this.textChannel.send(controlPanelMessageContent)
         .then(async controlPanelMessage =>{
           this.controlPanelMessage = controlPanelMessage
@@ -1020,40 +1020,40 @@ bot.on('message', message => {
           log('Direct Message sent to ' + message.author.username + ': ' + errorMessage)
         }
       }
-    }
-  })
-  //if the sender is not a bot, delete the message after it's been processed
-  if(!sender.bot){
-      //give Cordelia some time to process the message before we delete it
-      if (msg.startsWith(cordeliasPrefix)){
-        sleep(3000).then(() => {
+      //if the sender is not a bot, delete the message after it's been processed
+      if(!sender.bot){
+        //give Cordelia some time to process the message before we delete it
+        if (msg.startsWith(cordeliasPrefix)){
+          sleep(3000).then(() => {
+            try{
+              message.delete();
+              log('deleted message')
+            }
+            catch (err){
+              log('couldn\'t delete message. Maybe it already got deleted by cordelia?')
+            }
+          });
+        }
+        else{
+          //if the sender has an active matchSeek
+          if (matchSeek = matchmaker.getMatchSeek(message.member)){
+            //append the message content to the matchseek message so the seeker can customize the matchSeek
+            //for example, they can add something like "accepting all challenges", or "Platinum only", or "First to 10 wins"
+            log('DETECTED MESSAGE FROM A MATCH SEEKER')
+            matchmaker.updateMatchSeekMessage(matchSeek, message.content);
+          }
           try{
             message.delete();
             log('deleted message')
           }
           catch (err){
-            log('couldn\'t delete message. Maybe it already got deleted by cordelia?')
+            log('couldn\'t delete message.')
           }
-        });
-      }
-      else{
-
-        //if the sender has an active matchSeek
-        if (matchSeek = matchmaker.getMatchSeek(message.member)){
-          //append the message content to the matchseek message so the seeker can customize the matchSeek
-          //for example, they can add something like "accepting all challenges", or "Platinum only", or "First to 10 wins"
-          log('DETECTED MESSAGE FROM A MATCH SEEKER')
-          matchmaker.updateMatchSeekMessage(matchSeek, message.content);
-        }
-        try{
-          message.delete();
-          log('deleted message')
-        }
-        catch (err){
-          log('couldn\'t delete message.')
         }
       }
     }
+  })
+
 });
 
 bot.on('guildMemberUpdate', (oldMember, newMember) => {
@@ -1061,20 +1061,20 @@ bot.on('guildMemberUpdate', (oldMember, newMember) => {
   matchmakingPlatforms.forEach(platform =>{
     if(oldMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent)){
       //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
-      log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
+      log(newMember.user.name + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
       matchmaker.removeMatchSeek(newMember);
     }
     if(newMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify)){
-      log(`${newMember.user.username} changed to Do Not Notify`)
+      log(`${newMember.user.name} changed to Do Not Notify`)
       matchmaker.cancelSeeksAndChallenges(newMember);
     }
     if(newMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !oldMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
-      log(`${newMember.user.username} changed to In-Game`)
+      log(`${newMember.user.name} changed to In-Game`)
       matchmaker.cancelSeeksAndChallenges(newMember);
     }
     if(oldMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !newMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
       // member was in-game and now is not. End any match they were in.
-      log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
+      log(newMember.user.name + ' is no longer in-game.\n Ending any matches they were in.')
       matchmaker.endMatch(newMember);
     }
   })
@@ -1443,7 +1443,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               log(`${user.username} locked their match chat channels`)
               //then also remove any reactions for /:lock:
               unlockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.cache.get("🔓")
-              unlockReaction.users.forEach(reactionUser => {
+              unlockReaction.users.cache.forEach(reactionUser => {
                 if (reactionUser.id !== bot.user.id){
                   unlockReaction.users.remove(reactionUser)
                 }
@@ -1452,13 +1452,13 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               sleep(1).then(async () => {
                 unlockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeUnlock)
                 if (unlockReaction) {
-                  unlockReaction.users.forEach(reactionUser => {
+                  unlockReaction.users.cache.forEach(reactionUser => {
                     unlockReaction.users.remove(reactionUser)
                   })
                 }
                 getMatchChannelPermissionsReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeGetMatchChannelPermissions)
                 if (getMatchChannelPermissionsReaction) {
-                  getMatchChannelPermissionsReaction.users.forEach(reactionUser => {
+                  getMatchChannelPermissionsReaction.users.cache.forEach(reactionUser => {
                     getMatchChannelPermissionsReaction.users.remove(reactionUser)
                   })
                 }
@@ -1489,7 +1489,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               log(`${user.username} unlocked the match chat channels`)
               //then also remove any reactions for /:lock: from the control panel message
               lockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.cache.get("🔒")
-              lockReaction.users.forEach(reactionUser => {
+              lockReaction.users.cache.forEach(reactionUser => {
                 if (reactionUser.id !== bot.user.id){
                   lockReaction.users.remove(reactionUser)
                 }
@@ -1498,7 +1498,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               sleep(1).then(async () => {
                 lockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeLock)
                 if (lockReaction) {
-                  lockReaction.users.forEach(reactionUser => {
+                  lockReaction.users.cache.forEach(reactionUser => {
                     lockReaction.users.remove(reactionUser)
                   })
                 }
@@ -1550,12 +1550,12 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
             var role = memberThatReacted.guild.roles.cache.get(platform.roleIDSpectators);
             if(memberThatReacted.roles.cache.has(platform.roleIDSpectators)) {
               memberThatReacted.roles.remove(role)
-              memberThatReacted.send(`I've removed your Spectators role for ${platform.platformName}`)
+              memberThatReacted.send(`I've removed your ${role.name} role for ${platform.platformName}`)
             }
             else{
               memberThatReacted.roles.remove([roleIDNewMember,roleIDInactive])
               memberThatReacted.roles.add(role)
-              memberThatReacted.send("I've assigned you the @Spectators role")
+              memberThatReacted.send(`I've assigned you the ${role.name} role for ${platform.platformName}`)
             }
 
           }
