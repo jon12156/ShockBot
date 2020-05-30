@@ -237,7 +237,6 @@ class Matchmaker{
         if (challenge.challenger === member){
           log(challenge)
           matchSeek.removeChallenge(challenge)
-          challenge.message.delete()
           .then(log('deleted challenge message'))
           .catch(console.error())
         }
@@ -501,8 +500,8 @@ class Match{
       memberToAdd.user.send(`This reaction grants you access to a match.  You were already in this match.  You should be able to see its channels at to top of the list.`)
     }
     else {
-      this.textChannel.overwritePermissions(memberToAdd.user, {READ_MESSAGES: true})
-      this.voiceChannel.overwritePermissions(memberToAdd.user, {READ_MESSAGES: true})
+      this.textChannel.createOverwrite(memberToAdd.user, {READ_MESSAGES: true})
+      this.voiceChannel.createOverwrite(memberToAdd.user, {READ_MESSAGES: true})
       log(`applying read permission for a match's channels for ${memberToAdd.user.username}`)
       let spectator = new Spectator(memberToAdd, this)
       this.spectators.add(spectator)
@@ -514,8 +513,8 @@ class Match{
     let success = false
     this.spectators.forEach(spectator => {
       if (spectator.member.id === memberToRemove.id){
-        this.textChannel.overwritePermissions(memberToRemove.user, {READ_MESSAGES: false})
-        this.voiceChannel.overwritePermissions(memberToRemove.user, {READ_MESSAGES: false})
+        this.textChannel.createOverwrite(memberToRemove.user, {READ_MESSAGES: false})
+        this.voiceChannel.createOverwrite(memberToRemove.user, {READ_MESSAGES: false})
         matchmaker.disconnectMemberFromVoice(spectator.member)
         log(`removing read permission for a match's channels for ${memberToRemove.user.username}`)
         this.spectators.delete(spectator)
@@ -829,15 +828,18 @@ async function changeMatchmakingRole(member, newRoleID) {
   var platformIndex
   var platform = null
   await (platformIndex = findIndexOfRelatedPlatform(newRoleID))
-  if (platform === -1) {
-    log(`Error: paltform not found with given newRoleID ${newRoleID}`)
+  if (platformIndex === -1) {
+    log(`Error: platform not found with given newRoleID ${newRoleID}`)
     return
   }
   else{
     platform = matchmakingPlatforms[platformIndex]
     log(`platform found for role passed to function changeMatchmakingRole`)
   }
-  lastMatchmakingActivity[member.id] = Date.now()
+  if (!lastMatchmakingActivity[platformIndex]){
+    lastMatchmakingActivity[platformIndex] = {}
+  }
+  lastMatchmakingActivity[platformIndex][member.id] = Date.now()
   //do stuff depending on what matchmaking role roleString represents
   if (newRoleID === platform.roleIDLookingForOpponent) {
     member.roles.remove([platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
@@ -1061,20 +1063,20 @@ bot.on('guildMemberUpdate', (oldMember, newMember) => {
   matchmakingPlatforms.forEach(platform =>{
     if(oldMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent)){
       //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
-      log(newMember.user.name + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
+      log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
       matchmaker.removeMatchSeek(newMember);
     }
     if(newMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify)){
-      log(`${newMember.user.name} changed to Do Not Notify`)
+      log(`${newMember.user.username} changed to Do Not Notify`)
       matchmaker.cancelSeeksAndChallenges(newMember);
     }
     if(newMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !oldMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
-      log(`${newMember.user.name} changed to In-Game`)
+      log(`${newMember.user.username} changed to In-Game`)
       matchmaker.cancelSeeksAndChallenges(newMember);
     }
     if(oldMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !newMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
       // member was in-game and now is not. End any match they were in.
-      log(newMember.user.name + ' is no longer in-game.\n Ending any matches they were in.')
+      log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
       matchmaker.endMatch(newMember);
     }
   })
@@ -1090,9 +1092,9 @@ bot.on('ready', () => {
   //log(matchmaker);
   matchmakingPlatforms.forEach(platform =>{
     try { //try to find the matchmaking channel
-      log(`textChannelIDForMatchmaking = ${platform.textChannelIDForMatchmaking}`)
+      log(`specified textChannelIDForMatchmaking for platform ${platform.platformName} = ${platform.textChannelIDForMatchmaking}`)
       platform.matchmakingTextChannel = bot.channels.cache.get(platform.textChannelIDForMatchmaking)
-      log(`found the matchmaking channel. ID: ${platform.matchmakingTextChannel.id}`)
+      log(`found the matchmaking channel for platform ${platform.platformName}. ID: ${platform.matchmakingTextChannel.id}`)
     }
     catch (e) {
       log(`ERROR: Could not find the matchmaking channel for platform ${platform.platformName}`)
@@ -1101,16 +1103,16 @@ bot.on('ready', () => {
     }
     //try { //try to fetch the message with messageIDForMatchmakingRoles
     platform.matchmakingTextChannel.messages.fetch(platform.messageIDForMatchmakingRoles).then(function(fetchedMessage){
-      log('found the message for Matchmaking Role assignment')
+      log(`found the message for Matchmaking Role assignment for platform ${platform.platformName}`)
       platform.messageForMatchmakingRoles = fetchedMessage
       try{
         platform.messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
           matchmakingMessageReaction.users.fetch();
         });
-        log('fetched users who had previously reacted to the matchmaking message')
+        log(`fetched users who had previously reacted to the matchmaking message for platform ${platform.platformName}`)
       }
       catch (err){
-        log('ERROR fetching users who had previously reacted to the matchmaking message')
+        log(`ERROR fetching users who had previously reacted to the matchmaking message for platform ${platform.platformName}`)
         log(err)
       }
       sleep(1).then(async function(){
@@ -1123,7 +1125,7 @@ bot.on('ready', () => {
         await platform.messageForMatchmakingRoles.react(platform.reactionIdentDND);
         await platform.messageForMatchmakingRoles.react(platform.reactionIdentSpectator);
         //await messageForMatchmakingRoles.react(reactionIdentLogMatchSeeks);
-        log('reactions added to the messageForMatchmakingRoles')
+        log(`reactions added to the messageForMatchmakingRoles for platform ${platform.platformName}`)
       });
     }).catch(function(e){
       log('ERROR: Could not find the message for Matchmaking Role assignment')
@@ -1208,7 +1210,7 @@ bot.on('ready', () => {
     log(`Successfully read lastMatchmakingActivity.json`)
   }).catch(function(e){
     log(e)
-    log('ERROR reading lastMatchmakingActivity.json. Creating blank list.')
+    log(`Error reading lastMatchmakingActivity.json. That's OK, we'll create a new file.`)
     lastMatchmakingActivity= {}
   });
   sleep(3000).then(async function(){ //wait a few seconds to ensure enough time to read the file
@@ -1224,24 +1226,35 @@ bot.on('ready', () => {
 });
 
 function doMaintenance(){
+  log(`Maintenance:`)
   //Note: this looks like the bot might support multiple guilds.  It doesn't, currently.
   bot.guilds.cache.map((guild) => {
     //move members to less active roles over time
-    inactivityActions.forEach(action =>{
-      guild.roles.cache.get(action.roleID).members.map(member =>{
-        if (!lastMatchmakingActivity[member.id]){
-          lastMatchmakingActivity[member.id] = Date.now()
-        }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[member.id]){
-          changeMatchmakingRole(member, action.nextRoleName)
-          if (action.message && action.message != "") {
-            member.send(action.message)
+    matchmakingPlatforms.forEach(platform =>{
+      log(`for platform ${platform.platformName}`)
+      var platformIndex = findIndexOfRelatedPlatform(platform.platformName)
+      inactivityActions.forEach(action =>{
+        log(`for roleType ${action.roleType}`)
+        guild.roles.cache.get(matchmakingPlatforms[platformIndex][action.roleType]).members.map(member =>{
+          if (!lastMatchmakingActivity[platformIndex]){
+            log(`Platform not found in lastMatchmakingActivity, adding it`)
+            lastMatchmakingActivity[platformIndex] = {}
           }
-        }
+          if (!lastMatchmakingActivity[platformIndex][member.id]){
+            log(`${member.user.username} not found in lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}]`)
+            log(`lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}][${member.user.username}'s member.id] = now`)
+            lastMatchmakingActivity[platformIndex][member.id] = Date.now()
+          }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[member.id]){
+            log(`time to change matchmaking role for ${member.user.username}`)
+            changeMatchmakingRole(member, matchmakingPlatforms[platformIndex][action.nextRoleType])
+            if (action.message && action.message != "") {
+              member.send(action.message)
+            }
+          }
+        })
       })
     })
   })
-
-
   writeLastMatchmakingActivity()
 }
 
@@ -1266,32 +1279,32 @@ bot.on('guildMemberAdd', member => {
 });
 
 // Listener Event: a user left or joined a voice channel, or otherwise changed their voice state (mute/unmute..)
-bot.on('voiceStateUpdate', (oldMember,newMember) => {
-  let newMemberName = newMember.user.username
+bot.on('voiceStateUpdate', (oldState, newState) => {
+  let newMemberName = newState.member.user.username
   let joinedMatchVoiceChannel = false
   let joinedSomeVoiceChannel = false
   let sentVoiceChatInvite = false
   //log(`voiceStateUpdate for ${newMemberName}`)
-  if(newMember.voiceChannel){
+  if(newState.channel){
     //log('member is in a voice channel in this server')
-    if (!oldMember.voiceChannel || oldMember.voiceChannel.id !== newMember.voiceChannel.id){
+    if (!oldState.channel || oldState.channelID !== newState.channelID){
       //log('member was not previously in a voice channel or was in a different voice channel')
       //log('Therefore, we can say the member joined a channel')
-      log(`${newMemberName} joined voice channel: ${newMember.voiceChannel.name}`)
+      log(`${newMemberName} joined voice channel: ${newState.channel.name}`)
       joinedSomeVoiceChannel = true
       //now check through our Match list to see if the member joined a match channel
       matchmaker.matchSet.forEach(match =>{
-        if (newMember.voiceChannel.id === match.voiceChannel.id){
+        if (newState.channelID === match.voiceChannel.id){
           //log(`the channel joined is a match voice channel`)
           joinedMatchVoiceChannel = true
-          if(match.memberIsAPlayerInMatch(newMember)){
-            let otherPlayer = match.otherPlayer(newMember)
+          if(match.memberIsAPlayerInMatch(newState.member)){
+            let otherPlayer = match.otherPlayer(newState.member)
             let otherPlayerVoiceChannel
             if (otherPlayer) otherPlayerVoiceChannel = otherPlayer.voiceChannel
             if(!otherPlayerVoiceChannel || (otherPlayerVoiceChannel && otherPlayerVoiceChannel.id !== match.voiceChannel.id)){
               //log('other player is not in a voice channel, or is in a voice channel other than the match channel.')
               log(`inviting opponent ${otherPlayer.user.username} to the match voice channel`)
-              match.textChannel.send(`${otherPlayer}, ${newMemberName} offers to voice chat in the channel: ${newMember.voiceChannel.name} \n\n Click :keyboard: if you can't or would rather not right now.`)
+              match.textChannel.send(`${otherPlayer}, ${newMemberName} offers to voice chat in the channel: ${newState.member.voiceChannel.name} \n\n Click :keyboard: if you can't or would rather not right now.`)
               .then(sentMessage => {
                 sentVoiceChatInvite = true
                 if (match.voiceChatInvite){
