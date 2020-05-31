@@ -1,4 +1,3 @@
-
 const botSettings = require("./botsettings.json")
 var Discord = require('discord.js');
 const fs = require('fs');
@@ -243,6 +242,21 @@ class Matchmaker{
       })
     })
   }
+  memberIsInAMatch(member){
+    log(`Checking whether ${member.user.username} is in a match`)
+    var memberFoundInMatch = false
+    matchmaker.matchSet.forEach(match => {
+
+      if (match.player1 === member || match.player2 === member){
+        log(`They are.`)
+        memberFoundInMatch = true
+        return
+      }
+    })
+    if (memberFoundInMatch) log(`They are.`)
+    else log(`They aren't`)
+    return memberFoundInMatch
+  }
 
   removeLookingMessages(member, platformIndex){
     // removes from all platforms if platform not specified
@@ -279,12 +293,12 @@ class Matchmaker{
     matchmaker.endMatch(match.player1);
     matchmaker.endMatch(match.player2);
     sleep(500).then(() => {
-      this.matchSet.add(match);
       changeMatchmakingRole(match.player1, matchmakingPlatforms[match.platformIndex].roleIDInGame)
       changeMatchmakingRole(match.player2, matchmakingPlatforms[match.platformIndex].roleIDInGame)
       match.createVoiceChannel()
       match.createTextChannel()
-      .then(() =>{
+      .then(sleep(1000)).then(() =>{
+        this.matchSet.add(match);
         this.checkAndUpdateStreamsForMatch(match)
       })
       .catch(err => {
@@ -316,8 +330,8 @@ class Matchmaker{
     try{
       log('Moving players to Voice Channel (if they were in another voice channel in this server)')
 
-      match.player1.setVoiceChannel(match.voiceChannel)
-      match.player2.setVoiceChannel(match.voiceChannel)
+      match.player1.voice.setChannel(match.voiceChannel)
+      match.player2.voice.setChannel(match.voiceChannel)
       log('players should have been moved to voice channel')
     }
     catch(err){
@@ -427,7 +441,7 @@ class Matchmaker{
         reason: `temp channel to remove ${member.user.username} from voice chat`})
       .then(channel =>{
         log(`Created Temporary channel to move ${member.user.username} to...`)
-        member.setVoiceChannel(channel)
+        member.voice.setChannel(channel)
         .then(() => {
           log('Moved them. Now deleting the temporary channel')
           channel.delete()
@@ -500,8 +514,8 @@ class Match{
       memberToAdd.user.send(`This reaction grants you access to a match.  You were already in this match.  You should be able to see its channels at to top of the list.`)
     }
     else {
-      this.textChannel.createOverwrite(memberToAdd.user, {READ_MESSAGES: true})
-      this.voiceChannel.createOverwrite(memberToAdd.user, {READ_MESSAGES: true})
+      this.textChannel.createOverwrite(memberToAdd.user, {VIEW_CHANNEL: true})
+      this.voiceChannel.createOverwrite(memberToAdd.user, {VIEW_CHANNEL: true})
       log(`applying read permission for a match's channels for ${memberToAdd.user.username}`)
       let spectator = new Spectator(memberToAdd, this)
       this.spectators.add(spectator)
@@ -513,8 +527,8 @@ class Match{
     let success = false
     this.spectators.forEach(spectator => {
       if (spectator.member.id === memberToRemove.id){
-        this.textChannel.createOverwrite(memberToRemove.user, {READ_MESSAGES: false})
-        this.voiceChannel.createOverwrite(memberToRemove.user, {READ_MESSAGES: false})
+        this.textChannel.createOverwrite(memberToRemove.user, {VIEW_CHANNEL: false})
+        this.voiceChannel.createOverwrite(memberToRemove.user, {VIEW_CHANNEL: false})
         matchmaker.disconnectMemberFromVoice(spectator.member)
         log(`removing read permission for a match's channels for ${memberToRemove.user.username}`)
         this.spectators.delete(spectator)
@@ -842,6 +856,12 @@ async function changeMatchmakingRole(member, newRoleID) {
   //do stuff depending on what matchmaking role roleString represents
   if (newRoleID === platform.roleIDLookingForOpponent) {
     member.roles.remove([platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
+    if (!matchmaker.memberIsInAMatch(member)){
+      log(`member not in a match. also removing @in-game`)
+      sleep(500).then(() =>{
+        member.roles.remove(platform.roleIDInGame)
+      })
+    }
     // pause a moment for roles to be finished being removed
     sleep(500).then(() => {
       //assign '@looking for Opponent'
@@ -885,44 +905,44 @@ async function changeMatchmakingRole(member, newRoleID) {
 })
 return;
 }
-if (newRoleID === platform.roleIDPotentiallyAvailable) {
-  removeAllMatchmakingRoles(member, platformIndex);
-  // pause a moment for roles to be finished being removed
-  sleep(500).then(() => {
-    //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDPotentiallyAvailable);
-    member.roles.add(role);
-    log('Added role \'@Potentially available\' for platform ' + platform.platformName + ' to member ' + member.user.username);
-    //cancel any existing game seek
-  })
-  return;
-}
-if (newRoleID === platform.roleIDDoNotNotify) {
-  removeAllMatchmakingRoles(member, platformIndex); //todo: have this function remove all matchmaking roles on all platforms if a platform is not specified.
-  // pause a moment for roles to be finished being removed
-  sleep(500).then(() => {
-    //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDDoNotNotify);
-    member.roles.add(role);
-    log('Added role \'@Do Not Notify\' to member ' + member.user.username);
-    //cancel any existing game seek
-  })
-  return;
-}
-if (newRoleID === platform.roleIDInGame) {
-  removeAllMatchmakingRoles(member) //if they are going to in-game status, we remove all matchmaking roles from all platforms
-  // pause a moment for roles to be finished being removed
-  sleep(500).then(() => {
-    //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDInGame);
-    member.roles.add(role);
-    log('Added role \'@In-Game\' to member ' + member.user.username);
-    //cancel any existing game seek
-  })
-  return;
-}
-// if we are here, we didn't return, so we didn't change a role
-log('Role for member ' + member.user.username + ' not changed because \'' + roleString + '\' is not a valid role name')
+  if (newRoleID === platform.roleIDPotentiallyAvailable) {
+    removeAllMatchmakingRoles(member, platformIndex);
+    // pause a moment for roles to be finished being removed
+    sleep(500).then(() => {
+      //assign '@looking for Opponent'
+      var role = member.guild.roles.cache.find(x => x.id === platform.roleIDPotentiallyAvailable);
+      member.roles.add(role);
+      log('Added role \'@Potentially available\' for platform ' + platform.platformName + ' to member ' + member.user.username);
+      //cancel any existing game seek
+    })
+    return;
+  }
+  if (newRoleID === platform.roleIDDoNotNotify) {
+    removeAllMatchmakingRoles(member, platformIndex); //todo: have this function remove all matchmaking roles on all platforms if a platform is not specified.
+    // pause a moment for roles to be finished being removed
+    sleep(500).then(() => {
+      //assign '@looking for Opponent'
+      var role = member.guild.roles.cache.find(x => x.id === platform.roleIDDoNotNotify);
+      member.roles.add(role);
+      log('Added role \'@Do Not Notify\' to member ' + member.user.username);
+      //cancel any existing game seek
+    })
+    return;
+  }
+  if (newRoleID === platform.roleIDInGame) {
+    removeAllMatchmakingRoles(member) //if they are going to in-game status, we remove all matchmaking roles from all platforms
+    // pause a moment for roles to be finished being removed
+    sleep(500).then(() => {
+      //assign '@in-game'
+      var role = member.guild.roles.cache.find(x => x.id === platform.roleIDInGame);
+      member.roles.add(role);
+      log('Added role \'@In-Game\' to member ' + member.user.username);
+      //cancel any existing game seek
+    })
+    return;
+  }
+  // if we are here, we didn't return, so we didn't change a role
+  log('Role for member ' + member.user.username + ' not changed because \'' + roleString + '\' is not a valid role name')
 }
 
 function addRoleToMember(roleID, member){
@@ -940,15 +960,23 @@ sleep(500).then(() => {
 })
 */
 function removeAllMatchmakingRoles(member, platformIndex) {
-  matchmakingPlatforms.forEach(platform =>{
-    //removes all matchmaking roles a given platform, or for all platforms if platformIndex isn't specified
-    if (typeof platformIndex == "undefined" || platform.platformName === matchmakingPlatforms[platformIndex].platformName){
-      member.roles.remove([platform.roleIDInGame,platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
-      log(`removing all matchmaking roles for platform ${platform.platformName} from ${member.user.username}...`)
-    }
-
-  })
-
+  try{
+    var rolesToRemove = []
+    matchmakingPlatforms.forEach(platform =>{
+      //removes all matchmaking roles in a given platform, or for all platforms if platformIndex isn't specified
+      if (typeof platformIndex == "undefined" || platform.platformName === matchmakingPlatforms[platformIndex].platformName){
+        rolesToRemove = rolesToRemove.concat([platform.roleIDInGame,platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify])
+        log(`removing all matchmaking roles for platform ${platform.platformName} from ${member.user.username}...`)
+      }
+    })
+    rolesToRemove = rolesToRemove.concat([roleIDNewMember,roleIDInactive])
+    log(`removing roles: ${rolesToRemove.toString()}`)
+    member.roles.remove(rolesToRemove)
+  }
+  catch(err){
+    log(`Error in removeAllMatchMakingRoles:`)
+    log(err)
+  }
 }
 function removeAllSkillRoles(member) {
   //remove all skill roles
@@ -1055,30 +1083,48 @@ bot.on('message', message => {
   })
 
 });
+function guildMemberUpdate(platforms, oldMember, newMember,){
+  var delayForNextIteration
+  setTimeout(function() {
+      // Add tasks to do
+  }, 3000 * i);
+}
 
 bot.on('guildMemberUpdate', (oldMember, newMember) => {
   //if a member loses their '@looking For Opponent' Role
-  matchmakingPlatforms.forEach(platform =>{
-    if(oldMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent)){
-      //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
-      log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
-      matchmaker.removeMatchSeek(newMember);
-    }
-    if(newMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify)){
-      log(`${newMember.user.username} changed to Do Not Notify`)
-      matchmaker.cancelSeeksAndChallenges(newMember);
-    }
-    if(newMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !oldMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
-      log(`${newMember.user.username} changed to In-Game`)
-      matchmaker.cancelSeeksAndChallenges(newMember);
-    }
-    if(oldMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !newMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
-      // member was in-game and now is not. End any match they were in.
-      log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
-      matchmaker.endMatch(newMember);
-    }
+  var wait = 0
+  matchmakingPlatforms.forEach(async function(platform){
+    let p = new Promise(function(resolve, reject){
+      resolve(1);
+    })
+    p.then(sleep(wait)).then(wait = 0).then(() => {
+      if(oldMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent)){
+        //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
+        log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
+        matchmaker.removeMatchSeek(newMember);
+        wait = 500
+      }
+    }).then(sleep(wait)).then(wait = 0).then(() => {
+      if(newMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify)){
+        log(`${newMember.user.username} changed to Do Not Notify`)
+        matchmaker.cancelSeeksAndChallenges(newMember);
+        wait = 500
+      }
+    }).then(sleep(wait)).then(wait = 0).then(() => {
+      if(newMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !oldMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
+        log(`${newMember.user.username} changed to In-Game`)
+        matchmaker.cancelSeeksAndChallenges(newMember);
+        wait = 500
+      }
+    }).then(sleep(wait)).then(wait = 0).then(() => {
+      if(oldMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !newMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
+        // member was in-game and now is not. End any match they were in.
+        log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
+        matchmaker.endMatch(newMember);
+        wait = 500
+      }
+    })
   })
-
 });
 
 // Listener Event: Bot Launched
