@@ -24,7 +24,7 @@ One known bug is the bot will every once in a while do nothing when a player tri
 Heads-up: this is my first javascript project ever, so a lot of the code/practices contained within are probably awful.  Be nice.  There may even be cases where your bot will crash because I did not try/catch an error or promise rejection.  Logging has told me that future versions of node.js/discord.js will crash if these are not handled.
 If using windows, you might run the bot using the included shockbotautorespawn.bat to automatically restart the bot if it crashes.
 
-I may not be using the latest version of discord.js!  I'm not sure if this is important, but I'm using node npm 5.5.1 and discord.js 11.2.1
+Note: as of 5/30/2020, I am using node npm version 6.14.5 and discord.js version 12.2.0.
 
 I will provide at least this much in the way of tips for getting started with this: 
 
