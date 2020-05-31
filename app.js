@@ -404,7 +404,7 @@ class Matchmaker{
   }
   async disconnectMemberFromVoice(member){
     log(`Attempting to disconnect ${member.user.username} from voice chat`)
-    if (member.voiceChannel){
+    if (member.voice.channel){
       let tempChannelName = `booting-${member.user.username}`
       //remove special characters from the channel name
       tempChannelName = format_channel_name(tempChannelName)
@@ -1305,7 +1305,7 @@ bot.on('voiceStateUpdate', (oldState, newState) => {
             if(!otherPlayerVoiceChannel || (otherPlayerVoiceChannel && otherPlayerVoiceChannel.id !== match.voiceChannel.id)){
               //log('other player is not in a voice channel, or is in a voice channel other than the match channel.')
               log(`inviting opponent ${otherPlayer.user.username} to the match voice channel`)
-              match.textChannel.send(`${otherPlayer}, ${newMemberName} offers to voice chat in the channel: ${newState.member.voiceChannel.name} \n\n Click :keyboard: if you can't or would rather not right now.`)
+              match.textChannel.send(`${otherPlayer}, ${newMemberName} offers to voice chat in the channel: ${newState.member.voice.channel.name} \n\n Click :keyboard: if you can't or would rather not right now.`)
               .then(sentMessage => {
                 sentVoiceChatInvite = true
                 if (match.voiceChatInvite){
