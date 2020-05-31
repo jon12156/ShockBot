@@ -3,10 +3,10 @@ const botSettings = require("./botsettings.json")
 var Discord = require('discord.js');
 const fs = require('fs');
 var bot = new Discord.Client({autoReconnect:true});
-var matchmakingTextChannel;
+//var matchmakingTextChannel;
 var streamAlertsChannel;
 var surveysTextChannel;
-var messageForMatchmakingRoles;
+//var messageForMatchmakingRoles;
 var messageForSkillSurvey;
 var matchmaker;
 var lastMatchmakingActivity
@@ -14,27 +14,14 @@ var lastMatchmakingActivity
 // the current lists of MatchSeeks, Matches
 
 //IDs
-const textChannelIDForMatchmaking = botSettings.textChannelIDForMatchmaking
 const textChannelIDForWelcome = botSettings.textChannelIDForWelcome
 const textChannelIDForSetupHelp = botSettings.textChannelIDForSetupHelp
 const textChannelIDForSkillVerification = botSettings.textChannelIDForSkillVerification
 const channelIDStreamAlerts = botSettings.channelIDStreamAlerts
-const messageIDForMatchmakingRoles = botSettings.messageIDForMatchmakingRoles
-const roleIDLookingForOpponent = botSettings.roleIDLookingForOpponent  /* to get a role id, type \@rolename with the \ backslash escape), you need to enter that on your desired server (at any channel)
-The number between <@& and > is your desired role id*/
-const roleIDPotentiallyAvailable = botSettings.roleIDPotentiallyAvailable
-const roleIDDoNotNotify = botSettings.roleIDDoNotNotify
-const roleIDInGame = botSettings.roleIDInGame
 const roleIDNewMember = botSettings.roleIDNewMember
-const roleIDSpectators = botSettings.roleIDSpectators
 const roleIDInactive = botSettings.roleIDInactive
-const reactionIdentLookingForOpponent = botSettings.reactionIdentLookingForOpponent
-const reactionIdentPotentiallyAvailable = botSettings.reactionIdentPotentiallyAvailable //:regional_indicator_l:
-const reactionIdentInGame = botSettings.reactionIdentInGame //:no_entry:
-const reactionIdentDND = botSettings.reactionIdentDND //:no_entry_sign:
 const reactionIdentLock = botSettings.reactionIdentLock //:lock:
 const reactionIdentUnlock = botSettings.reactionIdentUnlock //:unlock:
-const reactionIdentSpectator = botSettings.reactionIdentSpectator //:eyes:
 const unicodeLock = botSettings.unicodeLock //🔒
 const unicodeUnlock = botSettings.unicodeUnlock //🔓
 const reactionIdentGetMatchChannelPermissions = botSettings.reactionIdentGetMatchChannelPermissions //:microphone:
@@ -86,6 +73,14 @@ if (botSettings.hasOwnProperty('inactivityActions')) {
   log(`Error: No inactivityActions specified in botSettings.json.  We will not change matchmaking roles for inactivity.`)
   inactivityActions = []
 }
+var matchmakingPlatforms
+if (botSettings.hasOwnProperty('matchmakingPlatforms')) {
+  matchmakingPlatforms = botSettings.matchmakingPlatforms
+}else{
+  log(`Fatal Error: No matchmakingPlatforms specified in botSettings.json. `)
+  matchmakingPlatforms = []
+  throw ''; //exit the program
+}
 // Functions
 
 // pauses running of code for duration passed in (in milliseconds)
@@ -129,7 +124,6 @@ class Matchmaker{
     log('starting new matchmaker');
     this.matchSeekSet = new Set();
     this.matchSet = new Set();
-    this.channelForNextMatchSeek = textChannelIDForMatchmaking;
     log('created new matchmaker');
     //log('matchmaker\'s matchSeekSet:\n' + this.matchSeekSet)
 
@@ -139,7 +133,7 @@ class Matchmaker{
     let skillRoleString = getSkillRoleString(matchSeek.seeker);
     if (skillRoleString !== '') messageContent += ` (${skillRoleString})`
     messageContent += ' **is looking for an opponent!**';
-    if (matchSeek.pingAllowed) messageContent += `\n\n<@&${roleIDLookingForOpponent}> <@&${roleIDPotentiallyAvailable}>`;
+    if (matchSeek.pingAllowed) messageContent += `\n\n<@&${matchmakingPlatforms[matchSeek.platformIndex].roleIDLookingForOpponent}> <@&${matchmakingPlatforms[matchSeek.platformIndex].roleIDPotentiallyAvailable}>`;
     let message;
     try {
       message = await matchSeek.textChannel.send(messageContent);
@@ -180,11 +174,8 @@ class Matchmaker{
     //remove any official matchSeeks (from this bot)
     sleep(1).then(() => {
       this.matchSeekSet.forEach(matchSeek =>{
-        log('about line 108')
         if (matchSeek.seeker === member){
-          log('about line 110')
           matchSeek.challenges.forEach(challenge => {
-            log('about line 118')
             matchmaker.removeMatchSeek
             matchSeek.removeChallenge(challenge)
           })
@@ -198,29 +189,29 @@ class Matchmaker{
         }
       })
     }).then(() =>{
-      // also remove any other messages saying the member "is looking", perhaps sent by cordelia
-      matchmakingTextChannel.messages.fetch().then(function(messageCollection){
-        messageCollection.forEach(function(message, id){
-          let msg = message.content.toUpperCase()
-          //exceptions:
-          // don't delete the messageForMatchmakingRoles
-          if(id !== messageIDForMatchmakingRoles){
-            //delete messages that say the member is looking
-            if(msg.includes(member.id) && msg.includes('IS LOOKING')){
+      matchmakingPlatforms.forEach(platform =>
+        {
+          // also remove any other messages saying the member "is looking", perhaps sent by cordelia
+          platform.matchmakingTextChannel.messages.fetch().then(function(messageCollection){
+            messageCollection.forEach(function(message, id){
+              let msg = message.content.toUpperCase()
+              //exceptions:
+              // don't delete the messageForMatchmakingRoles
+              if(id !== platform.messageIDForMatchmakingRoles){
+                //delete messages that say the member is looking
+                if(msg.includes(member.id) && msg.includes('IS LOOKING')){
 
-              log('deleting message: id:' + id + ' Message Content:' + message)
-              message.delete()
-              .then(log('deleted matchSeek message'))
-              .catch(() => undefined);
-            }else{
-              //used to log which messages were not being deleted here.
-              //log('not deleting: id:' + id + ' Message Content:' + message)
-            }
-          }
+                  log('deleting message: id:' + id + ' Message Content:' + message)
+                  message.delete()
+                  .then(log('deleted matchSeek message'))
+                  .catch(() => undefined);
+                }else{
+                  //used to log which messages were not being deleted here.
+                  //log('not deleting: id:' + id + ' Message Content:' + message)
+                }
+              }
+            })
         })
-
-      }).catch(function(){
-        log('Something went wrong with deleting the messages')
       })
     })
 
@@ -229,7 +220,6 @@ class Matchmaker{
     challenge.matchSeek.removeChallenge(challenge);
   }
   removeChallengesForMember(member){
-    log('about line 149')
     //log(this.matchSeekSet)
     log('matchSeeks before deletions:')
     matchmaker.matchSeekSet.forEach(function(matchSeek){
@@ -241,16 +231,12 @@ class Matchmaker{
     })
     log('deleting any challenges where challenger = ' + member.user.username)
     this.matchSeekSet.forEach(matchSeek =>{
-      log('about line 150')
       matchSeek.challenges.forEach(challenge =>{
-        log('about line 152')
         log('challenger: ' + challenge.challenger)
         log('member having challenges removed: ' + member)
         if (challenge.challenger === member){
-          log('about line 154 for member: ' + member.user.username)
           log(challenge)
           matchSeek.removeChallenge(challenge)
-          challenge.message.delete()
           .then(log('deleted challenge message'))
           .catch(console.error())
         }
@@ -258,43 +244,44 @@ class Matchmaker{
     })
   }
 
-  removeLookingMessages(member){
+  removeLookingMessages(member, platformIndex){
+    // removes from all platforms if platform not specified
     // remove any other messages saying the member "is looking", perhaps sent by cordelia
-    matchmakingTextChannel.messages.fetch().then(function(messageCollection){
-      messageCollection.forEach(function(message, id){
-        let msg = message.content.toUpperCase()
-        //exceptions:
-        // don't delete the messageForMatchmakingRoles
-        if(id !== messageIDForMatchmakingRoles){
-          //delete messages that say the member is looking
-          if(msg.includes(member.id) && msg.includes('IS LOOKING')){
+    matchmakingPlatforms.forEach(platform =>{
+      if (typeof platformIndex == "undefined" || platformIndex === -1 || platform.platformName === matchmakingPlatforms[platformIndex].platformName){
+        platform.matchmakingTextChannel.messages.fetch().then(function(messageCollection){
+          messageCollection.forEach(function(message, id){
+            let msg = message.content.toUpperCase()
+            //exceptions:
+            // don't delete the messageForMatchmakingRoles
+            if(id !== platform.messageIDForMatchmakingRoles){
+              //delete messages that say the member is looking
+              if(msg.includes(member.id) && msg.includes('IS LOOKING')){
 
-            log('deleting message: id:' + id + ' Message Content:' + message)
-            message.delete()
-            .then(log('deleted matchSeek message'))
-            .catch(() => undefined);
-          }else{
-            //used to log which messages were not being deleted here.
-            //log('not deleting: id:' + id + ' Message Content:' + message)
-          }
-        }
-      })
-
-    }).catch(function(){
-      log('Something went wrong with deleting the messages')
+                log('deleting message: id:' + id + ' Message Content:' + message)
+                message.delete()
+                .then(log('deleted matchSeek message'))
+                .catch(() => undefined);
+              }else{
+                //used to log which messages were not being deleted here.
+                //log('not deleting: id:' + id + ' Message Content:' + message)
+              }
+            }
+          })
+        })
+      }
     })
   }
-
   async addMatch(match){
     log('beginning of matchmaker addMatch method')
-    matchmaker.removeLookingMessages(match.player1)
-    matchmaker.removeLookingMessages(match.player2)
+    matchmaker.removeLookingMessages(match.player1, match.platformIndex)
+    matchmaker.removeLookingMessages(match.player2, match.platformIndex)
     matchmaker.endMatch(match.player1);
     matchmaker.endMatch(match.player2);
     sleep(500).then(() => {
       this.matchSet.add(match);
-      changeMatchmakingRole(match.player1, 'IN-GAME')
-      changeMatchmakingRole(match.player2, 'IN-GAME')
+      changeMatchmakingRole(match.player1, matchmakingPlatforms[match.platformIndex].roleIDInGame)
+      changeMatchmakingRole(match.player2, matchmakingPlatforms[match.platformIndex].roleIDInGame)
       match.createVoiceChannel()
       match.createTextChannel()
       .then(() =>{
@@ -346,52 +333,53 @@ class Matchmaker{
   //end a match where the member was a player
   endMatch(member){
     this.matchSet.forEach(match =>{
-      try{
-        if (match.player1 === member || match.player2 === member){
-          log('deleting TextChannel: ' + match.textChannel.name)
-          match.textChannel.delete()
-          try{
-            if (match.voiceChannel){
-              log('deleting VoiceChannel: ' + match.voiceChannel.name)
-              match.voiceChannel.delete()
-            }
-          }
-          catch (err){
-            log('error deleting VoiceChannel')
-            log(err)
-          }
-          this.matchSet.delete(match)
-          // Remove the opponent's IN-GAME role.
-          // set the opponent as POTENTIALLY AVAILABLE if they aren't already LOOKING for another opponent.
-          if (match.player1 === member ){
-            if (match.player2.roles.cache.has(roleIDLookingForOpponent)
-             && match.player2.roles.cache.has(roleIDInGame)){
-              match.player2.roles.remove(member.guild.roles.cache.get(roleIDInGame))
-            }
-            else{
-              changeMatchmakingRole(match.player2, 'POTENTIALLY AVAILABLE')
-            }
-          }
-          if (match.player2 === member ){
-            if (match.player1.roles.cache.has(roleIDLookingForOpponent)
-             && match.player1.roles.cache.has(roleIDInGame)){
-              match.player1.roles.remove(member.guild.roles.cache.get(roleIDInGame))
-            }
-            else{
-              changeMatchmakingRole(match.player1, 'POTENTIALLY AVAILABLE')
-            }
-          }
-          log(`matchAnnouncement to delete: ${match.matchAnnouncement.content}`)
-          if (match.matchAnnouncement !== null) {
-            match.matchAnnouncement.delete();
-            log('deleted matchAnnouncement')
+      if (match.player1 === member || match.player2 === member){
+        try{
+          if (match.textChannel){
+            log('deleting TextChannel: ' + match.textChannel.name)
+            match.textChannel.delete()
           }
         }
-      }
-      catch (err){
-        log('Error ending match. Perhaps we tried to delete something that was already deleted')
-        log('Here is the error:')
-        log(err)
+        catch(err){
+          log('error deleting textChannel')
+          log(err)
+        }
+        try{
+          if (match.voiceChannel){
+            log('deleting VoiceChannel: ' + match.voiceChannel.name)
+            match.voiceChannel.delete()
+          }
+        }
+        catch (err){
+          log('error deleting VoiceChannel')
+          log(err)
+        }
+        this.matchSet.delete(match)
+        // Remove the opponent's IN-GAME role.
+        // set the opponent as POTENTIALLY AVAILABLE if they aren't already LOOKING for another opponent.
+        if (match.player1 === member ){
+          if (match.player2.roles.cache.has(matchmakingPlatforms[match.platformIndex].roleIDLookingForOpponent)
+           && match.player2.roles.cache.has(matchmakingPlatforms[match.platformIndex].roleIDInGame)){
+            match.player2.roles.remove(member.guild.roles.cache.get(matchmakingPlatforms[match.platformIndex].roleIDInGame))
+          }
+          else{
+            changeMatchmakingRole(match.player2, matchmakingPlatforms[match.platformIndex].roleIDPotentiallyAvailable)
+          }
+        }
+        if (match.player2 === member ){
+          if (match.player1.roles.cache.has(matchmakingPlatforms[match.platformIndex].roleIDLookingForOpponent)
+           && match.player1.roles.cache.has(matchmakingPlatforms[match.platformIndex].roleIDInGame)){
+            match.player1.roles.remove(member.guild.roles.cache.get(matchmakingPlatforms[match.platformIndex].roleIDInGame))
+          }
+          else{
+            changeMatchmakingRole(match.player1, matchmakingPlatforms[match.platformIndex].roleIDPotentiallyAvailable)
+          }
+        }
+        if (match.matchAnnouncement !== null) {
+          log(`matchAnnouncement to delete: ${match.matchAnnouncement.content}`)
+          match.matchAnnouncement.delete();
+          log('deleted matchAnnouncement')
+        }
       }
     })
   }
@@ -494,6 +482,7 @@ class Match{
     this.player1StreamURL = ''
     this.player2StreamURL = ''
     this.textChannel = null
+    this.platformIndex = findIndexOfRelatedPlatform(announceChannel)
     this.announceChannel = announceChannel // the channel where it is announced the match has started.  may or may not use this
     this.matchAnnouncement = null
     this.voiceChannel = null
@@ -511,8 +500,8 @@ class Match{
       memberToAdd.user.send(`This reaction grants you access to a match.  You were already in this match.  You should be able to see its channels at to top of the list.`)
     }
     else {
-      this.textChannel.overwritePermissions(memberToAdd.user, {READ_MESSAGES: true})
-      this.voiceChannel.overwritePermissions(memberToAdd.user, {READ_MESSAGES: true})
+      this.textChannel.createOverwrite(memberToAdd.user, {READ_MESSAGES: true})
+      this.voiceChannel.createOverwrite(memberToAdd.user, {READ_MESSAGES: true})
       log(`applying read permission for a match's channels for ${memberToAdd.user.username}`)
       let spectator = new Spectator(memberToAdd, this)
       this.spectators.add(spectator)
@@ -524,8 +513,8 @@ class Match{
     let success = false
     this.spectators.forEach(spectator => {
       if (spectator.member.id === memberToRemove.id){
-        this.textChannel.overwritePermissions(memberToRemove.user, {READ_MESSAGES: false})
-        this.voiceChannel.overwritePermissions(memberToRemove.user, {READ_MESSAGES: false})
+        this.textChannel.createOverwrite(memberToRemove.user, {READ_MESSAGES: false})
+        this.voiceChannel.createOverwrite(memberToRemove.user, {READ_MESSAGES: false})
         matchmaker.disconnectMemberFromVoice(spectator.member)
         log(`removing read permission for a match's channels for ${memberToRemove.user.username}`)
         this.spectators.delete(spectator)
@@ -596,7 +585,7 @@ class Match{
       .then(channel =>{
         this.textChannel = channel
         // TO DO: limit this.textChannel permissions
-        this.coreAnnouncementMessage = `${channelName} is now in progress, <@&${roleIDSpectators}>!\nPlayers, please proceed to ${channel} to chat with your opponent.`
+        this.coreAnnouncementMessage = `${channelName} is now in progress, <@&${matchmakingPlatforms[this.platformIndex].roleIDSpectators}>!\nPlayers, please proceed to ${channel} to chat with your opponent.`
         //let msg = 'CHALLENGE ACCEPTED! \nPlease proceed to ' + channel
 
         this.announceChannel.send(this.coreAnnouncementMessage)
@@ -611,18 +600,20 @@ class Match{
           reject(err)
         })
         log(this.coreAnnouncementMessage)
-        let controlPanelMessageContent = `${this.player1} vs ${this.player2}\n\n**Match Control Panel**\n:unlock: (Default) Allow other people to join chat (text/voice)\n:lock: Do not allow other people to join chat\n:white_check_mark: Leave match and change me to Looking for Opponent\n:bell: Leave match and change me to Potentially Available\n:no_bell: Leave match and change me to Do Not Notify`
+        let controlPanelMessageContent = `${this.player1} vs ${this.player2}\n\n**Match Control Panel**\n:unlock: (Default) Allow other people to join chat (text/voice)\n:lock: Do not allow other people to join chat\n:white_check_mark: Look for a new opponent\n:bell: Leave match and change me to Potentially Available\n:no_bell: Leave match and change me to Do Not Notify`
         this.textChannel.send(controlPanelMessageContent)
         .then(async controlPanelMessage =>{
           this.controlPanelMessage = controlPanelMessage
           await this.controlPanelMessage.react(reactionIdentUnlock)
           await this.controlPanelMessage.react(reactionIdentLock)
-          await this.controlPanelMessage.react(reactionIdentLookingForOpponent)
-          await this.controlPanelMessage.react(reactionIdentPotentiallyAvailable)
-          await this.controlPanelMessage.react(reactionIdentDND)
+          await this.controlPanelMessage.react(matchmakingPlatforms[this.platformIndex].reactionIdentLookingForOpponent)
+          await this.controlPanelMessage.react(matchmakingPlatforms[this.platformIndex].reactionIdentPotentiallyAvailable)
+          await this.controlPanelMessage.react(matchmakingPlatforms[this.platformIndex].reactionIdentDND)
         })
         .catch(err =>{
-          let errmsg = 'MATCH ACCEPTED!  ' + this.player1 +' vs ' + this.player2 + '\n Match channel creation failed.  Please DM eachother'
+          log(`Match channel creation failed.  Here's the error:`)
+          log(err)
+          let errmsg = `MATCH ACCEPTED!  ${this.player1} vs ${this.player2}\n Match channel creation failed.  Please DM eachother`
           //let errmsg = 'CHALLENGE ACCEPTED!\n Match channel creation failed.  Please DM eachother'
           this.announceChannel.send(errmsg)
         })
@@ -750,6 +741,7 @@ class MatchSeek {
   constructor(seeker, textChannel, pingAllowed) {
     this.seeker = seeker;
     this.textChannel = textChannel;
+    this.platformIndex = findIndexOfRelatedPlatform(textChannel)
     this.challenges = new Set();
     this.pingAllowed = pingAllowed;
     this.message = null;
@@ -816,23 +808,51 @@ class Challenge {
   }
 }
 
-function changeMatchmakingRole(member, roleString) {
+//determine which platform uses the newRoleID
+function findIndexOfRelatedPlatform(searchTerm){
+  return matchmakingPlatforms.findIndex(function(platform){
+    return Object.keys(platform).findIndex(key => platform[key] === searchTerm) !== -1
+  })
+  //returns -1 if platform isn't found
+}
+
+function findPlatformHavingName(name){
+  return matchmakingPlatforms.find(platform => platform.platformName === name)
+
+}
+
+async function changeMatchmakingRole(member, newRoleID) {
   //if the member is a bot, don't do anything
   if (member.bot) return;
-  lastMatchmakingActivity[member.id] = Date.now()
+  //determine which platform uses the newRoleID
+  var platformIndex
+  var platform = null
+  await (platformIndex = findIndexOfRelatedPlatform(newRoleID))
+  if (platformIndex === -1) {
+    log(`Error: platform not found with given newRoleID ${newRoleID}`)
+    return
+  }
+  else{
+    platform = matchmakingPlatforms[platformIndex]
+  }
+  if (!lastMatchmakingActivity[platformIndex]){
+    lastMatchmakingActivity[platformIndex] = {}
+  }
+  lastMatchmakingActivity[platformIndex][member.id] = Date.now()
   //do stuff depending on what matchmaking role roleString represents
-  if (roleString.toUpperCase() === 'LOOKING FOR OPPONENT') {
-    member.roles.remove([roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
+  if (newRoleID === platform.roleIDLookingForOpponent) {
+    member.roles.remove([platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive]);//but don't remove "in-game" role, to allow looking while in-game
     // pause a moment for roles to be finished being removed
     sleep(500).then(() => {
       //assign '@looking for Opponent'
-      var role = member.guild.roles.cache.find(x => x.id === roleIDLookingForOpponent);
+      var role = member.guild.roles.cache.find(x => x.id === platform.roleIDLookingForOpponent);
       member.roles.add(role);
-      log('Added role \'@Looking for Opponent\' to member ' + member.user.username);
+      log('Added role \'@Looking for Opponent\' for platform ' + platform.platformName + ' to member ' + member.user.username);
+
 
       //send a message in the matchmaking channel alerting people that a user wants to play
       sleep(1).then(async function(){
-        const matchSeekToAdd = new MatchSeek(member, matchmakingTextChannel, true);
+        const matchSeekToAdd = new MatchSeek(member, platform.matchmakingTextChannel, true);
 
         //await matchSeekToAdd.sendMessage();
 
@@ -865,36 +885,36 @@ function changeMatchmakingRole(member, roleString) {
 })
 return;
 }
-if (roleString.toUpperCase() === 'POTENTIALLY AVAILABLE') {
-  removeAllMatchmakingRoles(member);
+if (newRoleID === platform.roleIDPotentiallyAvailable) {
+  removeAllMatchmakingRoles(member, platformIndex);
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === roleIDPotentiallyAvailable);
+    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDPotentiallyAvailable);
     member.roles.add(role);
-    log('Added role \'@Potentially available\' to member ' + member.user.username);
+    log('Added role \'@Potentially available\' for platform ' + platform.platformName + ' to member ' + member.user.username);
     //cancel any existing game seek
   })
   return;
 }
-if (roleString.toUpperCase() === 'DO NOT NOTIFY') {
-  removeAllMatchmakingRoles(member);
+if (newRoleID === platform.roleIDDoNotNotify) {
+  removeAllMatchmakingRoles(member, platformIndex); //todo: have this function remove all matchmaking roles on all platforms if a platform is not specified.
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === roleIDDoNotNotify);
+    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDDoNotNotify);
     member.roles.add(role);
     log('Added role \'@Do Not Notify\' to member ' + member.user.username);
     //cancel any existing game seek
   })
   return;
 }
-if (roleString.toUpperCase() === 'IN-GAME') {
-  removeAllMatchmakingRoles(member);
+if (newRoleID === platform.roleIDInGame) {
+  removeAllMatchmakingRoles(member) //if they are going to in-game status, we remove all matchmaking roles from all platforms
   // pause a moment for roles to be finished being removed
   sleep(500).then(() => {
     //assign '@looking for Opponent'
-    var role = member.guild.roles.cache.find(x => x.id === roleIDInGame);
+    var role = member.guild.roles.cache.find(x => x.id === platform.roleIDInGame);
     member.roles.add(role);
     log('Added role \'@In-Game\' to member ' + member.user.username);
     //cancel any existing game seek
@@ -919,9 +939,15 @@ sleep(500).then(() => {
 // Do the stuff that should follow the removeAllMatchmakingRoles function call
 })
 */
-function removeAllMatchmakingRoles(member) {
-  member.roles.remove([roleIDInGame,roleIDLookingForOpponent,roleIDPotentiallyAvailable,roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
-  log('removing all matchmaking roles from ' + member.user.username + '...')
+function removeAllMatchmakingRoles(member, platformIndex) {
+  matchmakingPlatforms.forEach(platform =>{
+    //removes all matchmaking roles a given platform, or for all platforms if platformIndex isn't specified
+    if (typeof platformIndex == "undefined" || platform.platformName === matchmakingPlatforms[platformIndex].platformName){
+      member.roles.remove([platform.roleIDInGame,platform.roleIDLookingForOpponent,platform.roleIDPotentiallyAvailable,platform.roleIDDoNotNotify,roleIDNewMember,roleIDInactive])
+      log(`removing all matchmaking roles for platform ${platform.platformName} from ${member.user.username}...`)
+    }
+
+  })
 
 }
 function removeAllSkillRoles(member) {
@@ -972,82 +998,87 @@ bot.on('message', message => {
   }
   // Cammands will only be run if the message was sent in a channel we are accepting commands in.
   // the Shockbot-commands channel's ID is 389650317026787329
-  if (message.channel.id === textChannelIDForMatchmaking){
-    if (msg.startsWith(prefix)){
+  matchmakingPlatforms.forEach(platform =>{
+    if (message.channel.id === platform.textChannelIDForMatchmaking){
+      if (msg.startsWith(prefix)){
 
-      if (msg === prefix + 'LOOKING' || msg === prefix + 'LO') {
-        changeMatchmakingRole(message.member, 'Looking For Opponent')
+        if (msg === prefix + 'LOOKING' || msg === prefix + 'LO') {
+          changeMatchmakingRole(message.member, platform.roleIDLookingForOpponent)
+        }
+        else if (msg === prefix + 'LURKING' || msg === prefix + 'AVAILABLE' || msg === prefix + 'LU'){
+          changeMatchmakingRole(message.member, platform.roleIDPotentiallyAvailable)
+        }
+        else if (msg === prefix +'DND'){
+          changeMatchmakingRole(message.member, platform.roleIDDoNotNotify)
+        }
+        else if (msg === prefix +'INGAME' || msg === prefix + 'IG' || msg === prefix + 'IN-GAME'){
+          changeMatchmakingRole(message.member, platform.roleIDInGame)
+        }
+        else {
+          let errorMessage = '\''+ message.content + '\' is an unrecognized command.\nCurrently, supported commands are the following, preceded by a \'' + prefix + '\'\nlooking, lo,\nlurking, lu,\ningame, ig,\ndnd '
+          message.author.send(errorMessage)
+          log('Direct Message sent to ' + message.author.username + ': ' + errorMessage)
+        }
       }
-      else if (msg === prefix + 'LURKING' || msg === prefix + 'AVAILABLE' || msg === prefix + 'LU'){
-        changeMatchmakingRole(message.member, 'Potentially Available')
-      }
-      else if (msg === prefix +'DND'){
-        changeMatchmakingRole(message.member, 'Do Not Notify')
-      }
-      else if (msg === prefix +'INGAME' || msg === prefix + 'IG' || msg === prefix + 'IN-GAME'){
-        changeMatchmakingRole(message.member, 'IN-GAME')
-      }
-      else {
-        let errorMessage = '\''+ message.content + '\' is an unrecognized command.\nCurrently, supported commands are the following, preceded by a \'' + prefix + '\'\nlooking, lo,\nlurking, lu,\ningame, ig,\ndnd '
-        message.author.send(errorMessage)
-        log('Direct Message sent to ' + message.author.username + ': ' + errorMessage)
-      }
-    }
-    //if the sender is not a bot, delete the message after it's been processed
-    if(!sender.bot){
-      //give Cordelia some time to process the message before we delete it
-      if (msg.startsWith(cordeliasPrefix)){
-        sleep(3000).then(() => {
+      //if the sender is not a bot, delete the message after it's been processed
+      if(!sender.bot){
+        //give Cordelia some time to process the message before we delete it
+        if (msg.startsWith(cordeliasPrefix)){
+          sleep(3000).then(() => {
+            try{
+              message.delete();
+              log('deleted message')
+            }
+            catch (err){
+              log('couldn\'t delete message. Maybe it already got deleted by cordelia?')
+            }
+          });
+        }
+        else{
+          //if the sender has an active matchSeek
+          if (matchSeek = matchmaker.getMatchSeek(message.member)){
+            //append the message content to the matchseek message so the seeker can customize the matchSeek
+            //for example, they can add something like "accepting all challenges", or "Platinum only", or "First to 10 wins"
+            log('DETECTED MESSAGE FROM A MATCH SEEKER')
+            matchmaker.updateMatchSeekMessage(matchSeek, message.content);
+          }
           try{
             message.delete();
             log('deleted message')
           }
           catch (err){
-            log('couldn\'t delete message. Maybe it already got deleted by cordelia?')
+            log('couldn\'t delete message.')
           }
-        });
-      }
-      else{
-
-        //if the sender has an active matchSeek
-        if (matchSeek = matchmaker.getMatchSeek(message.member)){
-          //append the message content to the matchseek message so the seeker can customize the matchSeek
-          //for example, they can add something like "accepting all challenges", or "Platinum only", or "First to 10 wins"
-          log('DETECTED MESSAGE FROM A MATCH SEEKER')
-          matchmaker.updateMatchSeekMessage(matchSeek, message.content);
-        }
-        try{
-          message.delete();
-          log('deleted message')
-        }
-        catch (err){
-          log('couldn\'t delete message.')
         }
       }
     }
-  }
+  })
+
 });
 
 bot.on('guildMemberUpdate', (oldMember, newMember) => {
   //if a member loses their '@looking For Opponent' Role
-  if(oldMember.roles.cache.some(role => role.id === roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === roleIDLookingForOpponent)){
-    //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
-    log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
-    matchmaker.removeMatchSeek(newMember);
-  }
-  if(newMember.roles.cache.some(role => role.id === roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === roleIDDoNotNotify)){
-    log(`${newMember.user.username} changed to Do Not Notify`)
-    matchmaker.cancelSeeksAndChallenges(newMember);
-  }
-  if(newMember.roles.cache.some(role => role.id === roleIDInGame) && !oldMember.roles.cache.some(role => role.id === roleIDInGame)){
-    log(`${newMember.user.username} changed to In-Game`)
-    matchmaker.cancelSeeksAndChallenges(newMember);
-  }
-  if(oldMember.roles.cache.some(role => role.id === roleIDInGame) && !newMember.roles.cache.some(role => role.id === roleIDInGame)){
-    // member was in-game and now is not. End any match he was in.
-    log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
-    matchmaker.endMatch(newMember);
-  }
+  matchmakingPlatforms.forEach(platform =>{
+    if(oldMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent) && !newMember.roles.cache.some(role => role.id === platform.roleIDLookingForOpponent)){
+      //try to remove any messages in the matchmaking channel that indicated they were Looking for Opponent
+      log(newMember.user.username + ' is no longer Looking for Opponent.\nTrying to delete messages indicating they were looking')
+      matchmaker.removeMatchSeek(newMember);
+    }
+    if(newMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify) && !oldMember.roles.cache.some(role => role.id === platform.roleIDDoNotNotify)){
+      log(`${newMember.user.username} changed to Do Not Notify`)
+      matchmaker.cancelSeeksAndChallenges(newMember);
+    }
+    if(newMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !oldMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
+      log(`${newMember.user.username} changed to In-Game`)
+      matchmaker.cancelSeeksAndChallenges(newMember);
+    }
+    if(oldMember.roles.cache.some(role => role.id === platform.roleIDInGame) && !newMember.roles.cache.some(role => role.id === platform.roleIDInGame)){
+      // member was in-game and now is not. End any match they were in.
+      log(newMember.user.username + ' is no longer in-game.\n Ending any matches they were in.')
+      matchmaker.endMatch(newMember);
+    }
+  })
+
 });
 
 // Listener Event: Bot Launched
@@ -1057,15 +1088,47 @@ bot.on('ready', () => {
   var errorCount = 0;
   matchmaker = new Matchmaker();
   //log(matchmaker);
-  try { //try to find the matchmaking channel
-    log(`textChannelIDForMatchmaking = ${textChannelIDForMatchmaking}`)
-    matchmakingTextChannel = bot.channels.cache.get(textChannelIDForMatchmaking)
-    log(`found the matchmaking channel. ID: ${matchmakingTextChannel.id}`)
-  }
-  catch (e) {
-    log('ERROR: Could not find the matchmaking channel')
-    errorCount += 1;
-  }
+  matchmakingPlatforms.forEach(platform =>{
+    try { //try to find the matchmaking channel
+      log(`specified textChannelIDForMatchmaking for platform ${platform.platformName} = ${platform.textChannelIDForMatchmaking}`)
+      platform.matchmakingTextChannel = bot.channels.cache.get(platform.textChannelIDForMatchmaking)
+      log(`found the matchmaking channel for platform ${platform.platformName}. ID: ${platform.matchmakingTextChannel.id}`)
+    }
+    catch (e) {
+      log(`ERROR: Could not find the matchmaking channel for platform ${platform.platformName}`)
+      log(e)
+      errorCount += 1;
+    }
+    //try { //try to fetch the message with messageIDForMatchmakingRoles
+    platform.matchmakingTextChannel.messages.fetch(platform.messageIDForMatchmakingRoles).then(function(fetchedMessage){
+      log(`found the message for Matchmaking Role assignment for platform ${platform.platformName}`)
+      platform.messageForMatchmakingRoles = fetchedMessage
+      try{
+        platform.messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
+          matchmakingMessageReaction.users.fetch();
+        });
+        log(`fetched users who had previously reacted to the matchmaking message for platform ${platform.platformName}`)
+      }
+      catch (err){
+        log(`ERROR fetching users who had previously reacted to the matchmaking message for platform ${platform.platformName}`)
+        log(err)
+      }
+      sleep(1).then(async function(){
+        //TO DO: check if we have added the appropriate reactions to the messageForMatchmakingRoles
+        //if not, add them
+        //for now, just add the appropriate reactions
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentLookingForOpponent);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentPotentiallyAvailable);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentInGame);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentDND);
+        await platform.messageForMatchmakingRoles.react(platform.reactionIdentSpectator);
+        //await messageForMatchmakingRoles.react(reactionIdentLogMatchSeeks);
+        log(`reactions added to the messageForMatchmakingRoles for platform ${platform.platformName}`)
+      });
+    }).catch(function(e){
+      log('ERROR: Could not find the message for Matchmaking Role assignment')
+    });
+  })
   try { //try to find the matchmaking channel
     surveysTextChannel = bot.channels.cache.get(textChannelIDForSurveys)
     log('found the Surveys channel')
@@ -1098,35 +1161,7 @@ bot.on('ready', () => {
   */
   //update the skillSurveyMessage
 
-  //try { //try to fetch the message with messageIDForMatchmakingRoles
-  matchmakingTextChannel.messages.fetch(messageIDForMatchmakingRoles).then(function(fetchedMessage){
-    log('found the message for Matchmaking Role assignment')
-    messageForMatchmakingRoles = fetchedMessage
-    try{
-      messageForMatchmakingRoles.reactions.cache.forEach(function(matchmakingMessageReaction){
-        matchmakingMessageReaction.users.fetch();
-      });
-      log('fetched users who had previously reacted to the matchmaking message')
-    }
-    catch (err){
-      log('ERROR fetching users who had previously reacted to the matchmaking message')
-      log(err)
-    }
-    sleep(1).then(async function(){
-      //TO DO: check if we have added the appropriate reactions to the messageForMatchmakingRoles
-      //if not, add them
-      //for now, just add the appropriate reactions
-      await messageForMatchmakingRoles.react(reactionIdentLookingForOpponent);
-      await messageForMatchmakingRoles.react(reactionIdentPotentiallyAvailable);
-      await messageForMatchmakingRoles.react(reactionIdentInGame);
-      await messageForMatchmakingRoles.react(reactionIdentDND);
-      await messageForMatchmakingRoles.react(reactionIdentSpectator);
-      //await messageForMatchmakingRoles.react(reactionIdentLogMatchSeeks);
-      log('reactions added to the messageForMatchmakingRoles')
-    });
-  }).catch(function(e){
-    log('ERROR: Could not find the message for Matchmaking Role assignment')
-  });
+
   // place reactions on the SkillSurveyMessage
   surveysTextChannel.messages.fetch(messageIDForSkillSurvey).then(function(fetchedMessage2){
     log('found the message for the Skill Survey')
@@ -1154,7 +1189,7 @@ bot.on('ready', () => {
 
       log('reactions added to the message for Skill Survey')
       //Run these only once, then comment them out
-      //bot.channels.cache.get(textChannelIDForMatchmaking).send(`Click a reaction to change your matchmaking status\n:white_check_mark: Looking for Opponent\n:bell: Potentially Available\n:no_entry: In-Game\n:no_bell: Do Not Notify / Can't play right now\n\nIf a player is already looking for an opponent, you can offer to play with them by clicking the :crossed_swords:\nThey can then accept by clicking :ok:\nNote: You can also add a custom message to your match request by sending a message in here.\n:lock: or :unlock: indicate whether a match's channels are locked.\nIf unlocked, you can click the :microphone2: to get access to the match's channels as a "spectator."\n:eyes: Toggles on/off pings for new spectatable matches. (@Spectators role)\n\nNeed help?  See <#${textChannelIDForWelcome}> or ask in <#${textChannelIDForSetupHelp}>`)
+      //bot.channels.cache.get(platform.textChannelIDForMatchmaking).send(`Click a reaction to change your matchmaking status\n:white_check_mark: Looking for Opponent\n:bell: Potentially Available\n:no_entry: In-Game\n:no_bell: Do Not Notify / Can't play right now\n\nIf a player is already looking for an opponent, you can offer to play with them by clicking the :crossed_swords:\nThey can then accept by clicking :ok:\nNote: You can also add a custom message to your match request by sending a message in here.\n:lock: or :unlock: indicate whether a match's channels are locked.\nIf unlocked, you can click the :microphone2: to get access to the match's channels as a "spectator."\n:eyes: Toggles on/off pings for new spectatable matches. (@Spectators role)\n\nNeed help?  See <#${textChannelIDForWelcome}> or ask in <#${textChannelIDForSetupHelp}>`)
 
       //bot.channels.cache.get(textChannelIDForSurveys).send(skillSurveyMessageContent)
 
@@ -1173,7 +1208,7 @@ bot.on('ready', () => {
     log(`Successfully read lastMatchmakingActivity.json`)
   }).catch(function(e){
     log(e)
-    log('ERROR reading lastMatchmakingActivity.json. Creating blank list.')
+    log(`Error reading lastMatchmakingActivity.json. That's OK, we'll create a new file.`)
     lastMatchmakingActivity= {}
   });
   sleep(3000).then(async function(){ //wait a few seconds to ensure enough time to read the file
@@ -1189,24 +1224,38 @@ bot.on('ready', () => {
 });
 
 function doMaintenance(){
+  //log(`Maintenance:`)
   //Note: this looks like the bot might support multiple guilds.  It doesn't, currently.
   bot.guilds.cache.map((guild) => {
     //move members to less active roles over time
-    inactivityActions.forEach(action =>{
-      guild.roles.cache.get(action.roleID).members.map(member =>{
-        if (!lastMatchmakingActivity[member.id]){
-          lastMatchmakingActivity[member.id] = Date.now()
-        }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[member.id]){
-          changeMatchmakingRole(member, action.nextRoleName)
-          if (action.message && action.message != "") {
-            member.send(action.message)
+    matchmakingPlatforms.forEach(platform =>{
+      //log(`for platform ${platform.platformName}`)
+      var platformIndex = findIndexOfRelatedPlatform(platform.platformName)
+      inactivityActions.forEach(action =>{
+        //log(`for roleType ${action.roleType}`)
+        guild.roles.cache.get(matchmakingPlatforms[platformIndex][action.roleType]).members.map(member =>{
+          //log(`for member ${member.user.username}`)
+          if (!lastMatchmakingActivity[platformIndex]){
+            //log(`Platform not found in lastMatchmakingActivity, adding it`)
+            lastMatchmakingActivity[platformIndex] = {}
           }
-        }
+          if (!lastMatchmakingActivity[platformIndex][member.id]){
+            //log(`${member.user.username} not found in lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}]`)
+            //log(`lastMatchmakingActivity[platformIndex for ${lastMatchmakingActivity[platformIndex].platformName}][${member.user.username}'s member.id] = now`)
+            lastMatchmakingActivity[platformIndex][member.id] = Date.now()
+          }else if (action.timeoutInMin && Date.now() - action.timeoutInMin * 60 * 1000 >= lastMatchmakingActivity[platformIndex][member.id]){
+            //log(`time to change matchmaking role for ${member.user.username}`)
+            changeMatchmakingRole(member, matchmakingPlatforms[platformIndex][action.nextRoleType])
+            if (action.message && action.message != "") {
+              member.send(action.message)
+            }
+          }else {
+            //log(`nothing to do here`)
+          }
+        })
       })
     })
   })
-
-
   writeLastMatchmakingActivity()
 }
 
@@ -1231,32 +1280,32 @@ bot.on('guildMemberAdd', member => {
 });
 
 // Listener Event: a user left or joined a voice channel, or otherwise changed their voice state (mute/unmute..)
-bot.on('voiceStateUpdate', (oldMember,newMember) => {
-  let newMemberName = newMember.user.username
+bot.on('voiceStateUpdate', (oldState, newState) => {
+  let newMemberName = newState.member.user.username
   let joinedMatchVoiceChannel = false
   let joinedSomeVoiceChannel = false
   let sentVoiceChatInvite = false
   //log(`voiceStateUpdate for ${newMemberName}`)
-  if(newMember.voiceChannel){
+  if(newState.channel){
     //log('member is in a voice channel in this server')
-    if (!oldMember.voiceChannel || oldMember.voiceChannel.id !== newMember.voiceChannel.id){
+    if (!oldState.channel || oldState.channelID !== newState.channelID){
       //log('member was not previously in a voice channel or was in a different voice channel')
       //log('Therefore, we can say the member joined a channel')
-      log(`${newMemberName} joined voice channel: ${newMember.voiceChannel.name}`)
+      log(`${newMemberName} joined voice channel: ${newState.channel.name}`)
       joinedSomeVoiceChannel = true
       //now check through our Match list to see if the member joined a match channel
       matchmaker.matchSet.forEach(match =>{
-        if (newMember.voiceChannel.id === match.voiceChannel.id){
+        if (newState.channelID === match.voiceChannel.id){
           //log(`the channel joined is a match voice channel`)
           joinedMatchVoiceChannel = true
-          if(match.memberIsAPlayerInMatch(newMember)){
-            let otherPlayer = match.otherPlayer(newMember)
+          if(match.memberIsAPlayerInMatch(newState.member)){
+            let otherPlayer = match.otherPlayer(newState.member)
             let otherPlayerVoiceChannel
             if (otherPlayer) otherPlayerVoiceChannel = otherPlayer.voiceChannel
             if(!otherPlayerVoiceChannel || (otherPlayerVoiceChannel && otherPlayerVoiceChannel.id !== match.voiceChannel.id)){
               //log('other player is not in a voice channel, or is in a voice channel other than the match channel.')
               log(`inviting opponent ${otherPlayer.user.username} to the match voice channel`)
-              match.textChannel.send(`${otherPlayer}, ${newMemberName} offers to voice chat in the channel: ${newMember.voiceChannel.name} \n\n Click :keyboard: if you can't or would rather not right now.`)
+              match.textChannel.send(`${otherPlayer}, ${newMemberName} offers to voice chat in the channel: ${newState.member.voiceChannel.name} \n\n Click :keyboard: if you can't or would rather not right now.`)
               .then(sentMessage => {
                 sentVoiceChatInvite = true
                 if (match.voiceChatInvite){
@@ -1408,7 +1457,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               log(`${user.username} locked their match chat channels`)
               //then also remove any reactions for /:lock:
               unlockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.cache.get("🔓")
-              unlockReaction.users.forEach(reactionUser => {
+              unlockReaction.users.cache.forEach(reactionUser => {
                 if (reactionUser.id !== bot.user.id){
                   unlockReaction.users.remove(reactionUser)
                 }
@@ -1417,13 +1466,13 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               sleep(1).then(async () => {
                 unlockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeUnlock)
                 if (unlockReaction) {
-                  unlockReaction.users.forEach(reactionUser => {
+                  unlockReaction.users.cache.forEach(reactionUser => {
                     unlockReaction.users.remove(reactionUser)
                   })
                 }
                 getMatchChannelPermissionsReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeGetMatchChannelPermissions)
                 if (getMatchChannelPermissionsReaction) {
-                  getMatchChannelPermissionsReaction.users.forEach(reactionUser => {
+                  getMatchChannelPermissionsReaction.users.cache.forEach(reactionUser => {
                     getMatchChannelPermissionsReaction.users.remove(reactionUser)
                   })
                 }
@@ -1433,7 +1482,6 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
 
           }
           else{
-            log("about line 1079 the chat is already locked")
             matchOfControlPanelMessage.textChannel.send(`${memberThatReacted}, the chat is already locked`)
           }
           return
@@ -1447,7 +1495,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           }
           else{
             if (!matchOfControlPanelMessage.locked){
-              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted}, the chat is already unlocked.\nPlayers can get permissions to view the channels by clicking the :microphone2: on your match announcement in <#${textChannelIDForMatchmaking}>`)
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted}, the chat is already unlocked.\nPlayers can get permissions to view the channels by clicking the :microphone2: on your match announcement in <#${match.announceChannel}>`)
             }
             else{
               matchOfControlPanelMessage.unlockChat()
@@ -1455,7 +1503,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               log(`${user.username} unlocked the match chat channels`)
               //then also remove any reactions for /:lock: from the control panel message
               lockReaction = matchOfControlPanelMessage.controlPanelMessage.reactions.cache.get("🔒")
-              lockReaction.users.forEach(reactionUser => {
+              lockReaction.users.cache.forEach(reactionUser => {
                 if (reactionUser.id !== bot.user.id){
                   lockReaction.users.remove(reactionUser)
                 }
@@ -1464,7 +1512,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               sleep(1).then(async () => {
                 lockReaction = matchOfControlPanelMessage.matchAnnouncement.reactions.cache.get(unicodeLock)
                 if (lockReaction) {
-                  lockReaction.users.forEach(reactionUser => {
+                  lockReaction.users.cache.forEach(reactionUser => {
                     lockReaction.users.remove(reactionUser)
                   })
                 }
@@ -1477,71 +1525,74 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           return
         }
       }
-      //check if the message they reacted to the one for changing matchmaking status/role
-      if (messageReaction.message.id === messageIDForMatchmakingRoles || reactionIsToAMatchControlPanelMessage) {
-        log('A user reacted with ' + emoji + ' to the matchmakingRoles or Match Control Panel Message');
-        //Looking reaction
-        if(emoji === reactionIdentLookingForOpponent){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+      matchmakingPlatforms.forEach(platform =>{
+        //check if the message they reacted to the one for changing matchmaking status/role
+        if (messageReaction.message.id === platform.messageIDForMatchmakingRoles || reactionIsToAMatchControlPanelMessage) {
+          log('A user reacted with ' + emoji + ' to the matchmakingRoles or Match Control Panel Message');
+          //Looking reaction
+          if(emoji === platform.reactionIdentLookingForOpponent){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            changeMatchmakingRole(memberThatReacted, platform.roleIDLookingForOpponent);
           }
-          changeMatchmakingRole(memberThatReacted, 'Looking For Opponent');
-        }
-        else if(emoji === reactionIdentPotentiallyAvailable){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+          else if(emoji === platform.reactionIdentPotentiallyAvailable){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            changeMatchmakingRole(memberThatReacted, platform.roleIDPotentiallyAvailable);
           }
-          changeMatchmakingRole(memberThatReacted, 'Potentially Available');
-        }
-        else if(emoji === reactionIdentInGame){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+          else if(emoji === platform.reactionIdentInGame){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            changeMatchmakingRole(memberThatReacted, platform.roleIDInGame);
           }
-          changeMatchmakingRole(memberThatReacted, 'IN-GAME');
-        }
-        else if(emoji === reactionIdentDND){
-          if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
-            matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
-            matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+          else if(emoji === platform.reactionIdentDND){
+            if (matchOfControlPanelMessage && matchOfControlPanelMessage.memberIsASpectatorInMatch(memberThatReacted)){
+              matchOfControlPanelMessage.textChannel.send(`${memberThatReacted} left`)
+              matchOfControlPanelMessage.removeMemberAsSpectator(memberThatReacted)
+            }
+            log(memberThatReacted.user.username + ' reacted Do Not Notify')
+            changeMatchmakingRole(memberThatReacted, platform.roleIDDoNotNotify);
           }
-          log(memberThatReacted.user.username + ' reacted Do Not Notify')
-          changeMatchmakingRole(memberThatReacted, 'Do Not Notify');
-        }
-        else if(emoji === reactionIdentSpectator){
-          log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
-          var role = memberThatReacted.guild.roles.cache.get(roleIDSpectators);
-          if(memberThatReacted.roles.cache.has(roleIDSpectators)) {
-            memberThatReacted.roles.remove(role)
-            memberThatReacted.send("I've removed your @Spectators role")
-          }
-          else{
-            memberThatReacted.roles.remove([roleIDNewMember,roleIDInactive])
-            memberThatReacted.roles.add(role)
-            memberThatReacted.send("I've assigned you the @Spectators role")
-          }
+          else if(emoji === platform.reactionIdentSpectator){
+            log(`${memberThatReacted.user.username} reacted with the spectator role emoji`)
+            var role = memberThatReacted.guild.roles.cache.get(platform.roleIDSpectators);
+            if(memberThatReacted.roles.cache.has(platform.roleIDSpectators)) {
+              memberThatReacted.roles.remove(role)
+              memberThatReacted.send(`I've removed your ${role.name} role for ${platform.platformName}`)
+            }
+            else{
+              memberThatReacted.roles.remove([roleIDNewMember,roleIDInactive])
+              memberThatReacted.roles.add(role)
+              memberThatReacted.send(`I've assigned you the ${role.name} role for ${platform.platformName}`)
+            }
 
-        }
-        else if(emoji === reactionIdentLogMatchSeeks){
-          log('matchSeeks:')
-          matchmaker.matchSeekSet.forEach(function(matchSeek){
-            log('matchSeek seeker: ' + matchSeek.seeker.user.username)
-            log('challenges: ')
-            matchSeek.challenges.forEach(function(challenge){
-              log('challenger: ' + challenge.challenger.user.username)
+          }
+          else if(emoji === reactionIdentLogMatchSeeks){
+            log('matchSeeks:')
+            matchmaker.matchSeekSet.forEach(function(matchSeek){
+              log('matchSeek seeker: ' + matchSeek.seeker.user.username)
+              log('challenges: ')
+              matchSeek.challenges.forEach(function(challenge){
+                log('challenger: ' + challenge.challenger.user.username)
+              })
             })
-          })
-          matchmaker.matchSet.forEach(match =>{
-            matchmaker.checkAndUpdateStreamsForMatch(match)
-          })
-        }else log(memberThatReacted.user.username + ' reacted to messageForMatchmakingRoles with an invalid emoji')
-        //remove the user's reaction
-        messageReaction.users.remove(memberThatReacted)
-      }
+            matchmaker.matchSet.forEach(match =>{
+              matchmaker.checkAndUpdateStreamsForMatch(match)
+            })
+          }else log(memberThatReacted.user.username + ' reacted to messageForMatchmakingRoles with an invalid emoji')
+          //remove the user's reaction
+          messageReaction.users.remove(memberThatReacted)
+        }
+      })
+
       //if the message is the SkillSurveyMessage
-      else if (messageReaction.message.id === messageIDForSkillSurvey){
+      if (messageReaction.message.id === messageIDForSkillSurvey){
         log(memberThatReacted.user.username + ' reacted to messageForSkillSurvey with emoji with Identifier: ' + emoji)
         let reactionWasValid = true
         switch(emoji){
@@ -1592,7 +1643,6 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               else {
                 sleep(1).then(async function(){
                   const challengeToAdd = new Challenge(memberThatReacted, matchSeek);
-                  log('about line 692')
                   //add a challenge to that matchSeek's Challenge set
                   await challengeToAdd.challengeMatchSeek();
                 });
