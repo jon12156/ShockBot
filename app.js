@@ -1224,7 +1224,7 @@ bot.on('ready', () => {
 });
 
 function doMaintenance(){
-  log(`Maintenance:`)
+  //log(`Maintenance:`)
   //Note: this looks like the bot might support multiple guilds.  It doesn't, currently.
   bot.guilds.cache.map((guild) => {
     //move members to less active roles over time
