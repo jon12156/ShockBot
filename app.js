@@ -1440,6 +1440,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           log(`${user.username}'s Reaction was to a Match Control Panel Message`)
           reactionIsToAMatchControlPanelMessage = true
           matchOfControlPanelMessage = match
+
         }
         if(messageReaction.message.id === match.matchAnnouncement.id){
           log(`${memberThatReacted.user.username} reacted to a match announcment`)
@@ -1573,7 +1574,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
       }
       matchmakingPlatforms.forEach(platform =>{
         //check if the message they reacted to the one for changing matchmaking status/role
-        if (messageReaction.message.id === platform.messageIDForMatchmakingRoles || reactionIsToAMatchControlPanelMessage) {
+        if (messageReaction.message.id === platform.messageIDForMatchmakingRoles || (reactionIsToAMatchControlPanelMessage && (matchmakingPlatforms[matchOfControlPanelMessage.platformIndex].platformName == platform.platformName))) {
           log('A user reacted with ' + emoji + ' to the matchmakingRoles or Match Control Panel Message');
           //Looking reaction
           if(emoji === platform.reactionIdentLookingForOpponent){
