@@ -41,7 +41,7 @@ Feel free to first edit line of code 48 (approximately) const skillSurveyMessage
 For each channel you provided an ID for in botsettings.json, make sure your bot has read and send message permission in that channel.
 
 Recently (around 10/30/2020), Discord started requiring the following be turned on for the bot to respond to role/presence changes:
-This the code design *should* be changed to no longer need such information, but for now, I'm just turning them on:
+The code *should* be redsigned to no longer need such information, but for now, I'm just turning them on:
 https://discord.com/developers/applications
 Your bot application > Settings > Bot > Privileged Gateway Intents
 Toggle on "PRESENCE INTENT" AND "SERVER MEMBERS INTENT"
