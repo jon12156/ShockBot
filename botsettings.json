@@ -95,5 +95,12 @@
       "nextRoleType":"roleIDDoNotNotify",
       "message":"I haven't changed your matchmaking role in the ServerNameHere server in about a week, so I'm going to stop pinging you when players are looking for opponents.  We don't want you to have to mute the server.\n\nFeel free to visit the matchmaking channel again to set your role when you want such notifications again."
     }
+  ],
+  "optionalRoles": [
+    {
+      "comment":"View NSO matchmaking channels - Role ViewNSOChannels"
+      "roleID":"123456(discordRoleIDToGiveOrRemove)"
+      "messageID":"123456(IDForMessageThatControlsThisRole)"
+    }
   ]
 }
