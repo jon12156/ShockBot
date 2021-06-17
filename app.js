@@ -80,6 +80,12 @@ if (botSettings.hasOwnProperty('matchmakingPlatforms')) {
   matchmakingPlatforms = []
   throw ''; //exit the program
 }
+var optionalRoles
+if (botSettings.hasOwnProperty('optionalRoles')) {
+  optionalRoles = botSettings.optionalRoles
+}else{
+  log(`Note: No optionalRoles specified in botSettings.json. `)
+  optionalRoles = []
 // Functions
 
 // pauses running of code for duration passed in (in milliseconds)
@@ -1736,6 +1742,13 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
               log(err)
             })
           }
+        }
+      })
+
+      //check if the reaction was to an optionalRoles messages
+      optionalRoles.forEach(optionalRole => {
+        if (optionalRole.messageID === messageReaction.message){
+          log(`someone reacted to an optionalRole with comment ${optionalRole.comment}`)
         }
       })
     }

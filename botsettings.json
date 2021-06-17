@@ -74,6 +74,8 @@
   "reactionIdentAcceptChallenge": "%F0%9F%86%97",
   "reactionIdentLogMatchSeeks": "%F0%9F%94%A7",
   "reactionIdentNoMike": "%E2%8C%A8",
+  "reactionIdentGiveRole":"%E2%9C%85",
+  "reactionIdentRemoveRole":"don't know yet",
   "delayInSecBeforeNonPlayersCanJoinChat": 10,
   "maintenanceIntervalInMin": 10,
   "inactivityActions": [
