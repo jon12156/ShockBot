@@ -1181,7 +1181,7 @@ bot.on('ready', () => {
       log('ERROR: Could not find the message for Matchmaking Role assignment')
     });
   })
-  try { //try to find the matchmaking channel
+  try { //try to find the Surveys channel
     surveysTextChannel = bot.channels.cache.get(textChannelIDForSurveys)
     log('found the Surveys channel')
   }
@@ -1189,7 +1189,7 @@ bot.on('ready', () => {
     log('ERROR: Could not find the surveys channel')
     errorCount += 1;
   }
-  try { //try to find the matchmaking channel
+  try { //try to find the stream-alerts channel
     streamAlertsChannel = bot.channels.cache.get(channelIDStreamAlerts)
     log('found the stream-alerts channel')
   }
@@ -1204,6 +1204,16 @@ bot.on('ready', () => {
   catch (e) {
     log('ERROR: Could not find the skill-verification channel')
     errorCount += 1;
+  }
+  var optionalRoles
+  try { //try to find optionalRoleChannels
+     if(botSettings.hasOwnProperty('optionalRoleChannels')) {
+       optionalRoleChannels = botSettings.optionalRoleChannels
+     }else{
+       log(`Note: No optionalRolesChannels specified in botSettings.json. `)
+       optionalRolesChannels = []
+    }
+
   }
   //one time, send the skillSurveyMessage.  We'll comment this out after it's been added once
   /*
