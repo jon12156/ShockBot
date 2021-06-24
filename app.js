@@ -1205,16 +1205,42 @@ bot.on('ready', () => {
     log('ERROR: Could not find the skill-verification channel')
     errorCount += 1;
   }
-  var optionalRoles
-  try { //try to find optionalRoleChannels
-     if(botSettings.hasOwnProperty('optionalRoleChannels')) {
-       optionalRoleChannels = botSettings.optionalRoleChannels
-     }else{
-       log(`Note: No optionalRolesChannels specified in botSettings.json. `)
-       optionalRolesChannels = []
-    }
-
+  var optionalRoleChannels
+  //try to find optionalRoleChennels
+  if(botSettings.hasOwnProperty('optionalRoleChannels')) {
+    optionalRoleChannels = botSettings.optionalRoleChannels
+    optionalRoleChannels.foreach(channel=>{
+      try {
+       channel.channel = bot.channels.cache.get(channel.channelID)
+      }
+      catch (e) {
+       log(`ERROR: Could not find the optionalRoleChannel for with comment ${channel.comment} and ID ${channel.channelID}`)
+       log(e)
+      }
+    })
+   }else{
+     log(`Note: No optionalRolesChannels specified in botSettings.json. `)
+     optionalRolesChannels = []
   }
+  var optionalRoles
+  //try to find optionalRoles
+  if(botSettings.hasOwnProperty('optionalRoleChannels')) {
+    optionalRoleChannels = botSettings.optionalRoleChannels
+    optionalRoleChannels.foreach(role=>{
+      try {
+       channel.role = bot.channels.cache.get(role.channelID)
+      }
+      catch (e) {
+       log(`ERROR: Could not find the optionalRole for with comment ${channel.comment} and ID ${role.roleID}`)
+       log(e)
+      }
+    })
+   }else{
+     log(`Note: No optionalRoles specified in botSettings.json. `)
+     optionalRoles = []
+  }
+
+
   //one time, send the skillSurveyMessage.  We'll comment this out after it's been added once
   /*
   let surveysChannel = bot.channels.cache.get(textChannelIDForSurveys)
