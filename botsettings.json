@@ -74,8 +74,6 @@
   "reactionIdentAcceptChallenge": "%F0%9F%86%97",
   "reactionIdentLogMatchSeeks": "%F0%9F%94%A7",
   "reactionIdentNoMike": "%E2%8C%A8",
-  "reactionIdentGiveRole":"%E2%9C%85",
-  "reactionIdentRemoveRole":"don't know yet",
   "delayInSecBeforeNonPlayersCanJoinChat": 10,
   "maintenanceIntervalInMin": 10,
   "inactivityActions": [
@@ -100,15 +98,44 @@
   ],
   "optionalRoleChannels": [
     {
-      "comment":"#get-channels-roles"
+      "comment":"#get-channels-roles",
       "channelID":"123456(channelIDforChannelToWatch)"
+    },
+    {
+      "comment":"#surveys-misc",
+      "channelID":"123456(someOtherChannelToWatch)"
     }
   ],
-  "optionalRoles": [
+  "optionalRoleMessages": [
     {
-      "comment":"View NSO matchmaking channels - Role ViewNSOChannels"
-      "roleID":"123456(discordRoleIDToGiveOrRemove)"
-      "messageID":"123456(IDForMessageThatControlsThisRole)"
+      "comment":"View NSO matchmaking channels, other reaction for devChannels",
+      "messageID":"123456(IDForMessageThatControlsTheseRole(s))",
+      "roles": [
+        {
+          "roleID":"123456(discordRoleIDToGiveOrRemove)",
+          "reactionIdent":"%E2%9C%85",
+          "comment":"role @PdPNSOPlayer uses White_check_mark reaction"
+        },
+        {
+          "roleID":"123456(secondDiscordRoleIDToGiveOrRemove)",
+          "reactionIdent":"1%E2%83%A3",
+          "comment":"role @ViewDevChannels uses Regional_indicator_A reaction"
+        },
+        {
+          "roleID":"123456(ThirdDiscordRoleIDToGiveOrRemove)",
+          "reactionIdent":"%E2%9C%85",
+          "comment":"role @PdPSwitchChatter ALSO uses White_check_mark reaction"
+        }
+      ]
+    },
+    {
+      "comment":"Pronouns",
+      "messageID":"1%E2%83%A3",
+      {
+        "roleID":"123456(he/him role)",
+        "reactionIdent":"1%E2%83%A3",
+        "comment":"role @PdPNSOPlayer uses regional_indicator_A reaction"
+      },
     }
   ]
 }

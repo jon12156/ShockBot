@@ -86,6 +86,7 @@ if (botSettings.hasOwnProperty('optionalRoles')) {
 }else{
   log(`Note: No optionalRoles specified in botSettings.json. `)
   optionalRoles = []
+}
 // Functions
 
 // pauses running of code for duration passed in (in milliseconds)
@@ -1236,7 +1237,7 @@ bot.on('ready', () => {
       }
     })
    }else{
-     log(`Note: No optionalRoles specified in botSettings.json. `)
+     log(`Note: No optionalRoleMessages specified in botSettings.json. `)
      optionalRoles = []
   }
 
