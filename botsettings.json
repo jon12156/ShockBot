@@ -130,12 +130,14 @@
     },
     {
       "comment":"Pronouns",
-      "messageID":"1%E2%83%A3",
-      {
-        "roleID":"123456(he/him role)",
-        "reactionIdent":"1%E2%83%A3",
-        "comment":"role @PdPNSOPlayer uses regional_indicator_A reaction"
-      },
+      "messageID":"123456(IDForMessageThatControlsTheseOtherRole(s))",
+      "roles":[
+        {
+          "roleID":"123456(he/him role)",
+          "reactionIdent":"1%E2%83%A3",
+          "comment":"role @he-him uses regional_indicator_A reaction"
+        }
+      ]
     }
   ]
 }

@@ -1215,7 +1215,7 @@ bot.on('ready', () => {
        channel.channel = bot.channels.cache.get(channel.channelID)
       }
       catch (e) {
-       log(`ERROR: Could not find the optionalRoleChannel for with comment ${channel.comment} and ID ${channel.channelID}`)
+       log(`ERROR: Could not find the optionalRoleChannel for with comment "${channel.comment} and ID ${channel.channelID}`)
        log(e)
       }
     })
@@ -1223,18 +1223,32 @@ bot.on('ready', () => {
      log(`Note: No optionalRolesChannels specified in botSettings.json. `)
      optionalRolesChannels = []
   }
-  var optionalRoles
-  //try to find optionalRoles
-  if(botSettings.hasOwnProperty('optionalRoleChannels')) {
-    optionalRoleChannels = botSettings.optionalRoleChannels
-    optionalRoleChannels.foreach(role=>{
-      try {
-       channel.role = bot.channels.cache.get(role.channelID)
-      }
-      catch (e) {
-       log(`ERROR: Could not find the optionalRole for with comment ${channel.comment} and ID ${role.roleID}`)
-       log(e)
-      }
+  var optionalRoleMessages
+  //try to find optionalRoleMessages
+  if(botSettings.hasOwnProperty('optionalRoleMessages')) {
+    optionalRoleMessages = botSettings.optionalRoleMessages
+    optionalRoleChannels.foreach(channel=>{
+      optionalRoleMessages.foreach(message=>{
+        try {
+         message.message = channel.channel.messages.fetch(message.messageID)
+         log(`found optionalRoleMessage with comment "${message.comment}" in channel with comment "${channel.comment}"`)
+         //add reactions the optionalRoleMessage
+         message.roles.foreach(role=>{
+           try{
+             message.message.react(role.reactionIdent)
+           }
+           catch(e){
+             log(`Error reacting to message with comment "${message.comment}" for role with comment "${role.comment}"`)
+             log(e)
+           }
+
+         })
+        }
+        catch (e) {
+         //log(e) //eh.. won't log this.  There will be too many instances
+        }
+      })
+
     })
    }else{
      log(`Note: No optionalRoleMessages specified in botSettings.json. `)
@@ -1785,7 +1799,7 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
       //check if the reaction was to an optionalRoles messages
       optionalRoles.forEach(optionalRole => {
         if (optionalRole.messageID === messageReaction.message){
-          log(`someone reacted to an optionalRole with comment ${optionalRole.comment}`)
+          log(`someone reacted to an optionalRole with comment "${optionalRole.comment}`)
         }
       })
     }
