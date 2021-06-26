@@ -80,13 +80,6 @@ if (botSettings.hasOwnProperty('matchmakingPlatforms')) {
   matchmakingPlatforms = []
   throw ''; //exit the program
 }
-var optionalRoles
-if (botSettings.hasOwnProperty('optionalRoles')) {
-  optionalRoles = botSettings.optionalRoles
-}else{
-  log(`Note: No optionalRoles specified in botSettings.json. `)
-  optionalRoles = []
-}
 // Functions
 
 // pauses running of code for duration passed in (in milliseconds)
@@ -1210,9 +1203,10 @@ bot.on('ready', () => {
   //try to find optionalRoleChennels
   if(botSettings.hasOwnProperty('optionalRoleChannels')) {
     optionalRoleChannels = botSettings.optionalRoleChannels
-    optionalRoleChannels.foreach(channel=>{
+    optionalRoleChannels.forEach(channel=>{
       try {
        channel.channel = bot.channels.cache.get(channel.channelID)
+       log(`Found optionalRoleChannel with comment "${channel.comment}"`)
       }
       catch (e) {
        log(`ERROR: Could not find the optionalRoleChannel for with comment "${channel.comment} and ID ${channel.channelID}`)
@@ -1227,13 +1221,14 @@ bot.on('ready', () => {
   //try to find optionalRoleMessages
   if(botSettings.hasOwnProperty('optionalRoleMessages')) {
     optionalRoleMessages = botSettings.optionalRoleMessages
-    optionalRoleChannels.foreach(channel=>{
-      optionalRoleMessages.foreach(message=>{
+    optionalRoleChannels.forEach(channel=>{
+      log(`looking for optionalRoleMessages in channel with comment "${channel.comment}"`)
+      optionalRoleMessages.forEach(message=>{
         try {
          message.message = channel.channel.messages.fetch(message.messageID)
          log(`found optionalRoleMessage with comment "${message.comment}" in channel with comment "${channel.comment}"`)
          //add reactions the optionalRoleMessage
-         message.roles.foreach(role=>{
+         message.roles.forEach(role=>{
            try{
              message.message.react(role.reactionIdent)
            }
