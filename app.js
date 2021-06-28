@@ -1225,8 +1225,10 @@ bot.on('ready', () => {
       log(`looking for optionalRoleMessages in channel with comment "${channel.comment}"`)
       optionalRoleMessages.forEach(message=>{
         try {
-         message.message = channel.channel.messages.fetch(message.messageID)
-         log(`found optionalRoleMessage with comment "${message.comment}" in channel with comment "${channel.comment}"`)
+         message.message = channel.channel.messages.fetch(message.messageID).then(function(fetchedMessage){
+           log(`found optionalRoleMessage with comment "${message.comment}" in channel with comment "${channel.comment}"`)
+           
+         })
          //add reactions the optionalRoleMessage
          message.roles.forEach(role=>{
            try{
@@ -1240,7 +1242,7 @@ bot.on('ready', () => {
          })
         }
         catch (e) {
-         //log(e) //eh.. won't log this.  There will be too many instances
+         log(e) //eh.. won't log this.  There will be too many instances
         }
       })
 
@@ -1480,10 +1482,12 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
   messageReaction.message.guild.members.fetch(user).then(memberThatReacted => {
     // do stuff with memberThatReacted
     var emoji = messageReaction.emoji.identifier
+
     //check that the user making the reaction is not a bot
     if (!user.bot){
+
       //log('member reacting is not a bot')
-      //log(`a user reacted to a message. messageReaction.emoji.name = ${messageReaction.emoji.name}`)
+      log(`a user reacted to a message. messageReaction.emoji.name = ${messageReaction.emoji.name}`)
       let reactionIsToAMatchControlPanelMessage = false
       let matchOfControlPanelMessage = null
       //check if the reaction was to a match in progress or if it was to a message related to the match
@@ -1792,9 +1796,15 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
       })
 
       //check if the reaction was to an optionalRoles messages
-      optionalRoles.forEach(optionalRole => {
+      optionalRolesMessages.forEach(optionalRoleMessage => {
         if (optionalRole.messageID === messageReaction.message){
-          log(`someone reacted to an optionalRole with comment "${optionalRole.comment}`)
+          log(`someone reacted to an optionalRole with comment "${optionalRole.comment}"`)
+          optionalRoleMessage.roles.forEach(optionalRole => {
+            if (emoji === optionalRole.reactionIdent){
+              log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+            }
+          })
+
         }
       })
     }
@@ -1804,6 +1814,16 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
     //  log('ERROR in messageReactionAdd or could not resolve memberThatReacted from messageReactionAdd')
     //})
   });
+
+bot.on("messageReactionRemove", (messageReaction, user) => {
+  messageReaction.message.guild.members.fetch(user).then(memberThatReacted => {
+    var emoji = messageReaction.emoji.identifier
+    //check that the user making the reaction is not a bot
+    if (!user.bot){
+      //log('member reacting is not a bot')
+      //do stuff
+    }
+});
 
   /* bot.on('messageReactionRemove', (messageReaction, user) => {
     messageReaction.message.guild.fetchMember(user).then(memberRemovingReaction => {
