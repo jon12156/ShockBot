@@ -1797,14 +1797,22 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
 
       //check if the reaction was to an optionalRoles message
       optionalRoleMessages.forEach(optionalRoleMessage => {
-        if (optionalRole.messageID === messageReaction.message){
-          log(`someone reacted to an optionalRole with comment "${optionalRole.comment}"`)
+        log(`optionalRoleMessage.messageID: ${optionalRoleMessage.messageID}`)
+        log(`messageReaction.message: ${messageReaction.message}`)
+        if (optionalRoleMessage.messageID === messageReaction.message.id){
+          log(`someone reacted to an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
           optionalRoleMessage.roles.forEach(optionalRole => {
             if (emoji === optionalRole.reactionIdent){
               log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+              if(!memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
+                log(`giving them the optionalRole with comment "${optionalRole.comment}"`)
+                memberThatReacted.roles.add(optionalRole.roleID)
+              }
+              else{
+                log(`member already has this role.`)
+              }
             }
           })
-
         }
       })
     }
@@ -1821,7 +1829,27 @@ bot.on("messageReactionRemove", (messageReaction, user) => {
     //check that the user making the reaction is not a bot
     if (!user.bot){
       //log('member reacting is not a bot')
-      //do stuff
+
+      //Check if the message is one that controls optionalRoles
+      optionalRoleMessages.forEach(optionalRoleMessage => {
+        log(`optionalRoleMessage.messageID: ${optionalRoleMessage.messageID}`)
+        log(`messageReaction.message: ${messageReaction.message}`)
+        if (optionalRoleMessage.messageID === messageReaction.message.id){
+          log(`someone removed a reaction for an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+          optionalRoleMessage.roles.forEach(optionalRole => {
+            if (emoji === optionalRole.reactionIdent){
+              log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+              if(memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
+                log(`removing their optionalRole with comment "${optionalRole.comment}"`)
+                memberThatReacted.roles.remove(optionalRole.roleID)
+              }
+              else{
+                log(`member didn't already have this role, so we did not remove it.`)
+              }
+            }
+          })
+        }
+      })
     }
   });
 });
