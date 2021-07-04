@@ -1797,8 +1797,6 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
 
       //check if the reaction was to an optionalRoles message
       optionalRoleMessages.forEach(optionalRoleMessage => {
-        log(`optionalRoleMessage.messageID: ${optionalRoleMessage.messageID}`)
-        log(`messageReaction.message: ${messageReaction.message}`)
         if (optionalRoleMessage.messageID === messageReaction.message.id){
           log(`someone reacted to an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
           optionalRoleMessage.roles.forEach(optionalRole => {
@@ -1832,8 +1830,6 @@ bot.on("messageReactionRemove", (messageReaction, user) => {
 
       //Check if the message is one that controls optionalRoles
       optionalRoleMessages.forEach(optionalRoleMessage => {
-        log(`optionalRoleMessage.messageID: ${optionalRoleMessage.messageID}`)
-        log(`messageReaction.message: ${messageReaction.message}`)
         if (optionalRoleMessage.messageID === messageReaction.message.id){
           log(`someone removed a reaction for an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
           optionalRoleMessage.roles.forEach(optionalRole => {
