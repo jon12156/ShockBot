@@ -1222,28 +1222,33 @@ bot.on('ready', () => {
     optionalRoleMessages = botSettings.optionalRoleMessages
     optionalRoleChannels.forEach(channel=>{
       log(`looking for optionalRoleMessages in channel with comment "${channel.comment}"`)
-      optionalRoleMessages.forEach(message=>{
-        try {
-          log(`looking for optionalRoleMessage with comment "${message.comment}"`)
-          channel.channel.messages.fetch(message.messageID).then(function(fetchedMessage){
-            message.message = fetchedMessage
-            log(`found optionalRoleMessage with comment "${message.comment}" in channel with comment "${channel.comment}"`)
+      optionalRoleMessages.forEach(optionalRoleMessage=>{
+        try{
+          log(`looking for optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+          channel.channel.messages.fetch(optionalRoleMessage.messageID).then(foundMessage =>{
+            optionalRoleMessage.message = foundMessage
+            log(`found optionalRoleMessage with comment "${optionalRoleMessage.comment}" in channel with comment "${channel.comment}"`)
             //add reactions the optionalRoleMessage
-            message.roles.forEach(role=>{
+            optionalRoleMessage.roles.forEach(role=>{
               try{
-                message.message.react(role.reactionIdent)
+                optionalRoleMessage.message.react(role.reactionIdent)
                 log(`Reacted to it for role with comment "${role.comment}"`)
               }
               catch(e){
-                log(`Error reacting to message with comment "${message.comment}" for role with comment "${role.comment}"`)
+                log(`Error reacting to message with comment "${optionalRoleMessage.comment}" for role with comment "${role.comment}"`)
                 log(e)
               }
             })
+          }).catch(function(e){
+            //log(e)
+            log(`DID NOT find optionalRoleMessage with comment "${optionalRoleMessage.comment}" in channel with comment "${channel.comment}"`)//eh.. maybe we won't log this.  There will be too many instances
           })
         }
-        catch (e) {
-         log(e) //eh.. maybe we won't log this.  There will be too many instances
+        catch(e){
+          log(`ERROR finding OptionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+          log(e)
         }
+
       })
 
     })
@@ -1797,21 +1802,27 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
 
       //check if the reaction was to an optionalRoles message
       optionalRoleMessages.forEach(optionalRoleMessage => {
-        if (optionalRoleMessage.messageID === messageReaction.message.id){
-          log(`someone reacted to an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
-          optionalRoleMessage.roles.forEach(optionalRole => {
-            if (emoji === optionalRole.reactionIdent){
-              log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
-              if(!memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
-                log(`giving them the optionalRole with comment "${optionalRole.comment}"`)
-                memberThatReacted.roles.add(optionalRole.roleID)
+        try{
+          if (optionalRoleMessage.messageID === messageReaction.message.id){
+            log(`someone reacted to an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+            optionalRoleMessage.roles.forEach(optionalRole => {
+              if (emoji === optionalRole.reactionIdent){
+                log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+                if(!memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
+                  log(`giving them the optionalRole with comment "${optionalRole.comment}"`)
+                  memberThatReacted.roles.add(optionalRole.roleID)
+                }
+                else{
+                  log(`member already has this role.`)
+                }
               }
-              else{
-                log(`member already has this role.`)
-              }
-            }
-          })
+            })
+          }
         }
+        catch(e){
+          log(e)
+        }
+
       })
     }
 
@@ -1830,20 +1841,25 @@ bot.on("messageReactionRemove", (messageReaction, user) => {
 
       //Check if the message is one that controls optionalRoles
       optionalRoleMessages.forEach(optionalRoleMessage => {
-        if (optionalRoleMessage.messageID === messageReaction.message.id){
-          log(`someone removed a reaction for an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
-          optionalRoleMessage.roles.forEach(optionalRole => {
-            if (emoji === optionalRole.reactionIdent){
-              log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
-              if(memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
-                log(`removing their optionalRole with comment "${optionalRole.comment}"`)
-                memberThatReacted.roles.remove(optionalRole.roleID)
+        try{
+          if (optionalRoleMessage.messageID === messageReaction.message.id){
+            log(`someone removed a reaction for an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+            optionalRoleMessage.roles.forEach(optionalRole => {
+              if (emoji === optionalRole.reactionIdent){
+                log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+                if(memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
+                  log(`removing their optionalRole with comment "${optionalRole.comment}"`)
+                  memberThatReacted.roles.remove(optionalRole.roleID)
+                }
+                else{
+                  log(`member didn't already have this role, so we did not remove it.`)
+                }
               }
-              else{
-                log(`member didn't already have this role, so we did not remove it.`)
-              }
-            }
-          })
+            })
+          }
+        }
+        catch(e){
+          log(e)
         }
       })
     }
