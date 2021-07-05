@@ -1219,38 +1219,33 @@ bot.on('ready', () => {
   }
   //try to find optionalRoleMessages
   if(botSettings.hasOwnProperty('optionalRoleMessages')) {
-    optionalRoleMessages = botSettings.optionalRoleMessages
-    optionalRoleChannels.forEach(channel=>{
-      log(`looking for optionalRoleMessages in channel with comment "${channel.comment}"`)
-      optionalRoleMessages.forEach(optionalRoleMessage=>{
-        try{
-          log(`looking for optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
-          channel.channel.messages.fetch(optionalRoleMessage.messageID).then(foundMessage =>{
-            optionalRoleMessage.message = foundMessage
-            log(`found optionalRoleMessage with comment "${optionalRoleMessage.comment}" in channel with comment "${channel.comment}"`)
+    sleep(1).then(async function(){
+      optionalRoleMessages = botSettings.optionalRoleMessages
+      for (const channel in optionalRoleChannels){
+        log(`looking for optionalRoleMessages in channel with comment "${optionalRoleChannels[channel].comment}"`)
+        for (const optionalRoleMessage in optionalRoleMessages){
+          try{
+            log(`looking for optionalRoleMessage with comment "${optionalRoleMessages[optionalRoleMessage].comment}"`)
+            optionalRoleMessages[optionalRoleMessage].message = await optionalRoleChannels[channel].channel.messages.fetch(optionalRoleMessages[optionalRoleMessage].messageID)
+            log(`found optionalRoleMessage with comment "${optionalRoleMessages[optionalRoleMessage].comment}" in channel with comment "${optionalRoleChannels[channel].comment}"`)
             //add reactions the optionalRoleMessage
-            optionalRoleMessage.roles.forEach(role=>{
+            optionalRoleMessages[optionalRoleMessage].roles.forEach(role=>{
               try{
-                optionalRoleMessage.message.react(role.reactionIdent)
+                optionalRoleMessages[optionalRoleMessage].message.react(role.reactionIdent)
                 log(`Reacted to it for role with comment "${role.comment}"`)
               }
               catch(e){
-                log(`Error reacting to message with comment "${optionalRoleMessage.comment}" for role with comment "${role.comment}"`)
+                log(`Error reacting to message with comment "${optionalRoleMessages[optionalRoleMessage].comment}" for role with comment "${role.comment}"`)
                 log(e)
               }
             })
-          }).catch(function(e){
-            //log(e)
-            log(`DID NOT find optionalRoleMessage with comment "${optionalRoleMessage.comment}" in channel with comment "${channel.comment}"`)//eh.. maybe we won't log this.  There will be too many instances
-          })
+          }
+          catch(e){
+              //log(e)
+              //log(`DID NOT find optionalRoleMessage with comment "${optionalRoleMessages[optionalRoleMessage].comment}" in channel with comment "${optionalRoleChannels[channel].comment}"`)//eh.. maybe we won't log this.  There will be too many instances
+          }
         }
-        catch(e){
-          log(`ERROR finding OptionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
-          log(e)
-        }
-
-      })
-
+      }
     })
    }else{
      log(`Note: No optionalRoleMessages specified in botSettings.json. `)
