@@ -69,6 +69,7 @@
   "channelIDSilver": "",
   "channelIDBronze": "",
   "channelIDStreamAlerts":"",
+  "roleIDStreamAlertsPing":"",
   "cordeliasPrefix": "!",
   "reactionIdentChallenge": "%E2%9A%94",
   "reactionIdentAcceptChallenge": "%F0%9F%86%97",

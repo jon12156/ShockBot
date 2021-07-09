@@ -4,6 +4,7 @@ const fs = require('fs');
 var bot = new Discord.Client({autoReconnect:true});
 //var matchmakingTextChannel;
 var streamAlertsChannel;
+const roleIDStreamAlertsPing = botSettings.roleIDStreamAlertsPing
 var surveysTextChannel;
 //var messageForMatchmakingRoles;
 var messageForSkillSurvey;
@@ -315,7 +316,7 @@ class Matchmaker{
     linkAddedToMatch = match.checkAndUpdateStreams()
     log(`linkAddedToMatch = ${linkAddedToMatch}`)
     if(linkAddedToMatch){
-      streamAlertsChannel.send(`${match.player1.user.username} vs ${match.player2.user.username}\n<${linkAddedToMatch}>`)
+      streamAlertsChannel.send(`${match.player1.user.username} vs ${match.player2.user.username} <@&${roleIDStreamAlertsPing}>\n<${linkAddedToMatch}>`)
       log('sent a message in the stream alerts channel')
     }
     else{
