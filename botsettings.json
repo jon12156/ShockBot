@@ -1,99 +1,140 @@
 {
-  "token": "",
-  "prefix": ">",
-  "matchmakingPlatforms": [
-    {
-      "platformName": "",
-      "textChannelIDForMatchmaking": "",
-      "messageIDForMatchmakingRoles": "",
-      "roleIDLookingForOpponent": ""  ,
-      "roleIDPotentiallyAvailable": "",
-      "roleIDDoNotNotify": "",
-      "roleIDInGame": "",
-      "roleIDSpectators": "",
-      "reactionIdentLookingForOpponent": "%E2%9C%85",
-      "reactionIdentPotentiallyAvailable": "%F0%9F%94%94",
-      "reactionIdentInGame": "%E2%9B%94",
-      "reactionIdentDND": "%F0%9F%94%95",
-      "reactionIdentSpectator": "%F0%9F%91%80"
-    },
-    {
-      "platformName": "2",
-      "textChannelIDForMatchmaking": "",
-      "messageIDForMatchmakingRoles": "",
-      "roleIDLookingForOpponent": ""  ,
-      "roleIDPotentiallyAvailable": "",
-      "roleIDDoNotNotify": "",
-      "roleIDInGame": "",
-      "roleIDSpectators": "",
-      "reactionIdentLookingForOpponent": "%E2%9C%85",
-      "reactionIdentPotentiallyAvailable": "%F0%9F%94%94",
-      "reactionIdentInGame": "%E2%9B%94",
-      "reactionIdentDND": "%F0%9F%94%95",
-      "reactionIdentSpectator": "%F0%9F%91%80"
-    }
-  ],
-  "roleIDNewMember": "",
-  "roleIDInactive": "",
-  "textChannelIDForWelcome": "",
-  "textChannelIDForSetupHelp": "",
-  "textChannelIDForSkillVerification": "",
-  "reactionIdentLock": "%F0%9F%94%92",
-  "unicodeLock": "🔒",
-  "unicodeUnlock": "🔓",
-  "reactionIdentUnlock": "%F0%9F%94%93",
-  "reactionIdentGetMatchChannelPermissions": "%F0%9F%8E%99",
-  "unicodeGetMatchChannelPermissions": "🎙",
-  "unicodeBoot": "👢",
-  "reactionIdentBronze": "1%E2%83%A3",
-  "reactionIdentSilver": "2%E2%83%A3",
-  "reactionIdentGold": "3%E2%83%A3",
-  "reactionIdentPlatinum": "4%E2%83%A3",
-  "reactionIdentDiamond": "5%E2%83%A3",
-  "reactionIdentMaster": "6%E2%83%A3",
-  "textChannelIDForSurveys": "",
-  "messageIDForSkillSurvey": "",
-  "roleIDMaster": "",
-  "roleIDDiamond": "",
-  "roleIDPlatinum": "",
-  "roleIDGold": "",
-  "roleIDSilver": "",
-  "roleIDBronze": "",
-  "roleIDMasterPending": "",
-  "roleIDDiamondPending": "",
-  "roleIDPlatinumPending": "",
-  "channelIDMaster": "",
-  "channelIDDiamond": "",
-  "channelIDPlatinum": "",
-  "channelIDGold": "",
-  "channelIDSilver": "",
-  "channelIDBronze": "",
-  "channelIDStreamAlerts":"",
-  "cordeliasPrefix": "!",
-  "reactionIdentChallenge": "%E2%9A%94",
-  "reactionIdentAcceptChallenge": "%F0%9F%86%97",
-  "reactionIdentLogMatchSeeks": "%F0%9F%94%A7",
-  "reactionIdentNoMike": "%E2%8C%A8",
-  "delayInSecBeforeNonPlayersCanJoinChat": 10,
-  "maintenanceIntervalInMin": 10,
-  "inactivityActions": [
-    {
-      "roleType":"roleIDInGame",
-      "timeoutInMin": 120,
-      "nextRoleType":"roleIDPotentiallyAvailable",
-      "message":"Just FYI, your match channels in ServerNameHere had been open for a long time, so I've closed them and set you to \"Potentially Available.\"  Feel free to make adjustments in #matchmaking.  Thanks."
-    },
-    {
-      "roleType":"roleIDLookingForOpponent",
-      "timeoutInMin": 180,
-      "nextRoleType":"roleIDPotentiallyAvailable",
-      "message":"Your \"Looking for Opponent\" status in ServerNameHere has expired and you've been moved to \"Potentially Available.\"  Feel free to make adjustments in #matchmaking.  Thanks."
-    },
-    {
-      "roleType":"roleIDPotentiallyAvailable",
-      "timeoutInMin": 10080,
-      "nextRoleType":"roleIDDoNotNotify",
-      "message":"I haven't changed your matchmaking role in the ServerNameHere server in about a week, so I'm going to stop pinging you when players are looking for opponents.  We don't want you to have to mute the server.\n\nFeel free to visit the matchmaking channel again to set your role when you want such notifications again."
-    }
-  ]
+    "token": "",
+    "prefix": ">",
+    "matchmakingPlatforms": [{
+            "platformName": "",
+            "textChannelIDForMatchmaking": "",
+            "messageIDForMatchmakingRoles": "",
+            "roleIDLookingForOpponent": "",
+            "roleIDPotentiallyAvailable": "",
+            "roleIDDoNotNotify": "",
+            "roleIDInGame": "",
+            "roleIDSpectators": "",
+            "reactionIdentLookingForOpponent": "%E2%9C%85",
+            "reactionIdentPotentiallyAvailable": "%F0%9F%94%94",
+            "reactionIdentInGame": "%E2%9B%94",
+            "reactionIdentDND": "%F0%9F%94%95",
+            "reactionIdentSpectator": "%F0%9F%91%80"
+        },
+        {
+            "platformName": "2",
+            "textChannelIDForMatchmaking": "",
+            "messageIDForMatchmakingRoles": "",
+            "roleIDLookingForOpponent": "",
+            "roleIDPotentiallyAvailable": "",
+            "roleIDDoNotNotify": "",
+            "roleIDInGame": "",
+            "roleIDSpectators": "",
+            "reactionIdentLookingForOpponent": "%E2%9C%85",
+            "reactionIdentPotentiallyAvailable": "%F0%9F%94%94",
+            "reactionIdentInGame": "%E2%9B%94",
+            "reactionIdentDND": "%F0%9F%94%95",
+            "reactionIdentSpectator": "%F0%9F%91%80"
+        }
+    ],
+    "roleIDNewMember": "",
+    "roleIDInactive": "",
+    "textChannelIDForWelcome": "",
+    "textChannelIDForSetupHelp": "",
+    "textChannelIDForSkillVerification": "",
+    "reactionIdentLock": "%F0%9F%94%92",
+    "unicodeLock": "🔒",
+    "unicodeUnlock": "🔓",
+    "reactionIdentUnlock": "%F0%9F%94%93",
+    "reactionIdentGetMatchChannelPermissions": "%F0%9F%8E%99",
+    "unicodeGetMatchChannelPermissions": "🎙",
+    "unicodeBoot": "👢",
+    "reactionIdentBronze": "1%E2%83%A3",
+    "reactionIdentSilver": "2%E2%83%A3",
+    "reactionIdentGold": "3%E2%83%A3",
+    "reactionIdentPlatinum": "4%E2%83%A3",
+    "reactionIdentDiamond": "5%E2%83%A3",
+    "reactionIdentMaster": "6%E2%83%A3",
+    "reactionIdentGrandmaster": "7%E2%83%A3",
+    "textChannelIDForSurveys": "",
+    "messageIDForSkillSurvey": "",
+    "roleIDGrandmaster": "",
+    "roleIDMaster": "",
+    "roleIDDiamond": "",
+    "roleIDPlatinum": "",
+    "roleIDGold": "",
+    "roleIDSilver": "",
+    "roleIDBronze": "",
+    "roleIDMasterPending": "",
+    "roleIDDiamondPending": "",
+    "roleIDPlatinumPending": "",
+    "channelIDGrandmaster": "",
+    "channelIDMaster": "",
+    "channelIDDiamond": "",
+    "channelIDPlatinum": "",
+    "channelIDGold": "",
+    "channelIDSilver": "",
+    "channelIDBronze": "",
+    "channelIDStreamAlerts": "",
+    "roleIDStreamAlertsPing": "",
+    "cordeliasPrefix": "!",
+    "reactionIdentChallenge": "%E2%9A%94",
+    "reactionIdentAcceptChallenge": "%F0%9F%86%97",
+    "reactionIdentLogMatchSeeks": "%F0%9F%94%A7",
+    "reactionIdentNoMike": "%E2%8C%A8",
+    "delayInSecBeforeNonPlayersCanJoinChat": 10,
+    "maintenanceIntervalInMin": 10,
+    "inactivityActions": [{
+            "roleType": "roleIDInGame",
+            "timeoutInMin": 120,
+            "nextRoleType": "roleIDPotentiallyAvailable",
+            "message": "Just FYI, your match channels in ServerNameHere had been open for a long time, so I've closed them and set you to \"Potentially Available.\"  Feel free to make adjustments in #matchmaking.  Thanks."
+        },
+        {
+            "roleType": "roleIDLookingForOpponent",
+            "timeoutInMin": 180,
+            "nextRoleType": "roleIDPotentiallyAvailable",
+            "message": "Your \"Looking for Opponent\" status in ServerNameHere has expired and you've been moved to \"Potentially Available.\"  Feel free to make adjustments in #matchmaking.  Thanks."
+        },
+        {
+            "roleType": "roleIDPotentiallyAvailable",
+            "timeoutInMin": 10080,
+            "nextRoleType": "roleIDDoNotNotify",
+            "message": "I haven't changed your matchmaking role in the ServerNameHere server in about a week, so I'm going to stop pinging you when players are looking for opponents.  We don't want you to have to mute the server.\n\nFeel free to visit the matchmaking channel again to set your role when you want such notifications again."
+        }
+    ],
+    "optionalRoleChannels": [{
+            "comment": "#get-channels-roles",
+            "channelID": "123456(channelIDforChannelToWatch)"
+        },
+        {
+            "comment": "#surveys-misc",
+            "channelID": "123456(someOtherChannelToWatch)"
+        }
+    ],
+    "optionalRoleMessages": [{
+            "comment": "View NSO matchmaking channels, other reaction for devChannels",
+            "messageID": "123456(IDForMessageThatControlsTheseRole(s))",
+            "roles": [{
+                    "roleID": "123456(discordRoleIDToGiveOrRemove)",
+                    "reactionIdent": "%E2%9C%85",
+                    "comment": "role @PdPNSOPlayer uses :white_check_mark: reaction"
+                },
+                {
+                    "roleID": "123456(secondDiscordRoleIDToGiveOrRemove)",
+                    "reactionIdent": "1%E2%83%A3",
+                    "comment": "role @ViewDevChannels uses :one: reaction"
+                },
+                {
+                    "roleID": "123456(ThirdDiscordRoleIDToGiveOrRemove)",
+                    "reactionIdent": "%E2%9C%85",
+                    "comment": "role @PdPSwitchChatter ALSO uses :white_check_mark: reaction"
+                }
+            ]
+        },
+        {
+            "comment": "Pronouns",
+            "messageID": "123456(IDForMessageThatControlsTheseOtherRole(s))",
+            "roles": [{
+                "roleID": "123456(he/him role)",
+                "reactionIdent": "1%E2%83%A3",
+                "comment": "role @he-him uses :one: reaction"
+            }]
+        }
+    ]
 }
