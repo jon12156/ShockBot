@@ -4,12 +4,14 @@ const fs = require('fs');
 var bot = new Discord.Client({autoReconnect:true});
 //var matchmakingTextChannel;
 var streamAlertsChannel;
+const roleIDStreamAlertsPing = botSettings.roleIDStreamAlertsPing
 var surveysTextChannel;
 //var messageForMatchmakingRoles;
 var messageForSkillSurvey;
 var matchmaker;
 var lastMatchmakingActivity
-
+var optionalRoleChannels
+var optionalRoleMessages
 // the current lists of MatchSeeks, Matches
 
 //IDs
@@ -314,7 +316,7 @@ class Matchmaker{
     linkAddedToMatch = match.checkAndUpdateStreams()
     log(`linkAddedToMatch = ${linkAddedToMatch}`)
     if(linkAddedToMatch){
-      streamAlertsChannel.send(`${match.player1.user.username} vs ${match.player2.user.username}\n<${linkAddedToMatch}>`)
+      streamAlertsChannel.send(`${match.player1.user.username} vs ${match.player2.user.username} <@&${roleIDStreamAlertsPing}>\n<${linkAddedToMatch}>`)
       log('sent a message in the stream alerts channel')
     }
     else{
@@ -1175,7 +1177,7 @@ bot.on('ready', () => {
       log('ERROR: Could not find the message for Matchmaking Role assignment')
     });
   })
-  try { //try to find the matchmaking channel
+  try { //try to find the Surveys channel
     surveysTextChannel = bot.channels.cache.get(textChannelIDForSurveys)
     log('found the Surveys channel')
   }
@@ -1183,7 +1185,7 @@ bot.on('ready', () => {
     log('ERROR: Could not find the surveys channel')
     errorCount += 1;
   }
-  try { //try to find the matchmaking channel
+  try { //try to find the stream-alerts channel
     streamAlertsChannel = bot.channels.cache.get(channelIDStreamAlerts)
     log('found the stream-alerts channel')
   }
@@ -1199,6 +1201,59 @@ bot.on('ready', () => {
     log('ERROR: Could not find the skill-verification channel')
     errorCount += 1;
   }
+  //try to find optionalRoleChennels
+  if(botSettings.hasOwnProperty('optionalRoleChannels')) {
+    optionalRoleChannels = botSettings.optionalRoleChannels
+    optionalRoleChannels.forEach(channel=>{
+      try {
+       channel.channel = bot.channels.cache.get(channel.channelID)
+       log(`Found optionalRoleChannel with comment "${channel.comment}"`)
+      }
+      catch (e) {
+       log(`ERROR: Could not find the optionalRoleChannel for with comment "${channel.comment} and ID "${channel.channelID}"`)
+       log(e)
+      }
+    })
+   }else{
+     log(`Note: No optionalRolesChannels specified in botSettings.json. `)
+     optionalRolesChannels = []
+  }
+  //try to find optionalRoleMessages
+  if(botSettings.hasOwnProperty('optionalRoleMessages')) {
+    sleep(1).then(async function(){
+      optionalRoleMessages = botSettings.optionalRoleMessages
+      for (const channel in optionalRoleChannels){
+        log(`looking for optionalRoleMessages in channel with comment "${optionalRoleChannels[channel].comment}"`)
+        for (const optionalRoleMessage in optionalRoleMessages){
+          try{
+            log(`looking for optionalRoleMessage with comment "${optionalRoleMessages[optionalRoleMessage].comment}"`)
+            optionalRoleMessages[optionalRoleMessage].message = await optionalRoleChannels[channel].channel.messages.fetch(optionalRoleMessages[optionalRoleMessage].messageID)
+            log(`found optionalRoleMessage with comment "${optionalRoleMessages[optionalRoleMessage].comment}" in channel with comment "${optionalRoleChannels[channel].comment}"`)
+            //add reactions the optionalRoleMessage
+            optionalRoleMessages[optionalRoleMessage].roles.forEach(role=>{
+              try{
+                optionalRoleMessages[optionalRoleMessage].message.react(role.reactionIdent)
+                log(`Reacted to it for role with comment "${role.comment}"`)
+              }
+              catch(e){
+                log(`Error reacting to message with comment "${optionalRoleMessages[optionalRoleMessage].comment}" for role with comment "${role.comment}"`)
+                log(e)
+              }
+            })
+          }
+          catch(e){
+              //log(e)
+              //log(`DID NOT find optionalRoleMessage with comment "${optionalRoleMessages[optionalRoleMessage].comment}" in channel with comment "${optionalRoleChannels[channel].comment}"`)//eh.. maybe we won't log this.  There will be too many instances
+          }
+        }
+      }
+    })
+   }else{
+     log(`Note: No optionalRoleMessages specified in botSettings.json. `)
+     optionalRoles = []
+  }
+
+
   //one time, send the skillSurveyMessage.  We'll comment this out after it's been added once
   /*
   let surveysChannel = bot.channels.cache.get(textChannelIDForSurveys)
@@ -1428,10 +1483,12 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
   messageReaction.message.guild.members.fetch(user).then(memberThatReacted => {
     // do stuff with memberThatReacted
     var emoji = messageReaction.emoji.identifier
+
     //check that the user making the reaction is not a bot
     if (!user.bot){
+
       //log('member reacting is not a bot')
-      //log(`a user reacted to a message. messageReaction.emoji.name = ${messageReaction.emoji.name}`)
+      log(`a user reacted to a message. messageReaction.emoji.identifier = ${messageReaction.emoji.identifier}`)
       let reactionIsToAMatchControlPanelMessage = false
       let matchOfControlPanelMessage = null
       //check if the reaction was to a match in progress or if it was to a message related to the match
@@ -1738,6 +1795,31 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
           }
         }
       })
+
+      //check if the reaction was to an optionalRoles message
+      optionalRoleMessages.forEach(optionalRoleMessage => {
+        try{
+          if (optionalRoleMessage.messageID === messageReaction.message.id){
+            log(`someone reacted to an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+            optionalRoleMessage.roles.forEach(optionalRole => {
+              if (emoji === optionalRole.reactionIdent){
+                log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+                if(!memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
+                  log(`giving them the optionalRole with comment "${optionalRole.comment}"`)
+                  memberThatReacted.roles.add(optionalRole.roleID)
+                }
+                else{
+                  log(`member already has this role.`)
+                }
+              }
+            })
+          }
+        }
+        catch(e){
+          log(e)
+        }
+
+      })
     }
 
   })//.catch(function(err){
@@ -1746,6 +1828,39 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
     //})
   });
 
+bot.on("messageReactionRemove", (messageReaction, user) => {
+  messageReaction.message.guild.members.fetch(user).then(memberThatReacted => {
+    var emoji = messageReaction.emoji.identifier
+    //check that the user making the reaction is not a bot
+    if (!user.bot){
+      //log('member reacting is not a bot')
+
+      //Check if the message is one that controls optionalRoles
+      optionalRoleMessages.forEach(optionalRoleMessage => {
+        try{
+          if (optionalRoleMessage.messageID === messageReaction.message.id){
+            log(`someone removed a reaction for an optionalRoleMessage with comment "${optionalRoleMessage.comment}"`)
+            optionalRoleMessage.roles.forEach(optionalRole => {
+              if (emoji === optionalRole.reactionIdent){
+                log(`${memberThatReacted.user.username} reacted to a watched emoji with comment "${optionalRole.comment}" for message with comment "${optionalRoleMessage.comment}"`)
+                if(memberThatReacted.roles.cache.some(role => role.id === optionalRole.roleID)){
+                  log(`removing their optionalRole with comment "${optionalRole.comment}"`)
+                  memberThatReacted.roles.remove(optionalRole.roleID)
+                }
+                else{
+                  log(`member didn't already have this role, so we did not remove it.`)
+                }
+              }
+            })
+          }
+        }
+        catch(e){
+          log(e)
+        }
+      })
+    }
+  });
+});
   /* bot.on('messageReactionRemove', (messageReaction, user) => {
     messageReaction.message.guild.fetchMember(user).then(memberRemovingReaction => {
 
