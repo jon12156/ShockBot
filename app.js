@@ -28,15 +28,16 @@ const unicodeUnlock = botSettings.unicodeUnlock //🔓
 const reactionIdentGetMatchChannelPermissions = botSettings.reactionIdentGetMatchChannelPermissions //:microphone:
 const unicodeGetMatchChannelPermissions = botSettings.unicodeGetMatchChannelPermissions //🎙
 const unicodeBoot = botSettings.unicodeBoot // "unicodeBoot": "👢",
+const reactionIdentCopper = botSettings.reactionIdentCopper //:zero:
 const reactionIdentBronze = botSettings.reactionIdentBronze //:one:
 const reactionIdentSilver = botSettings.reactionIdentSilver //:two:
 const reactionIdentGold = botSettings.reactionIdentGold //:three:
 const reactionIdentPlatinum = botSettings.reactionIdentPlatinum //:four:
 const reactionIdentDiamond = botSettings.reactionIdentDiamond //:five:
 const reactionIdentMaster = botSettings.reactionIdentMaster //:six:
-const validSkillRoleStrings = ['Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Master (pending verification)', 'Diamond (pending verification)', 'Platinum (pending verification)']
+const validSkillRoleStrings = ['Master', 'Diamond', 'Platinum', 'Gold', 'Silver', 'Bronze', 'Copper', 'Master (pending verification)', 'Diamond (pending verification)', 'Platinum (pending verification)']
 const textChannelIDForSurveys = botSettings.textChannelIDForSurveys
-const skillSurveyMessageContent = '__**Skill Survey**__\n\nPlease estimate your own skill at the game.  I\'ve put together a scale from Bronze to Master.\n\nTo answer, just click a reaction button corresponding to the number next to the skill level you think most closely matches your current skill.\n\nPlease answer as accurately as possible.  We\'d appreciate it if you don\'t joke and rank yourself way higher or way lower than your actual approximate skill.\n\n:one: **Bronze**\n-Very little or no experience with the game\n-mostly goes for 4 combos if anything.\n-prefers difficulty level 1\n\n:two: **Silver**\n-understands how to lower the stack (get rid of towers and fill holes)\n-looks for 5-6 combos\n-sets up x2 chains (not so many skill chains)\n-comfortable on levels 2-4\n\n:three: **Gold**\n-comfortable on level 5\n-can do some skill chains, usually just in the nick of time.\n-great at chaining off of transforming garbage\n\n:four: **Platinum**\n-Comfortable on level 8.\n-good at recognizing patterns and building long skill chains.\n\n:five: **Diamond**\n-comfortable on level 10\n-strategizes on what kinds of garbage to send and when, and when to stop a chain.\n-sees chains many links ahead, and can quickly send exactly the garbage he wants.\n\n:six: **Master**\n-great at incorporating lots of medium-large combos while chaining, which produces very high garbage output.\n-often takes advantage of time lag chains, and can often work on two chains at once.\n-deep game sense, knowing when to do certain things that will give him/her an advantage, like always knowing just how much garbage is required to top out the opponent.'
+const skillSurveyMessageContent = '__**Skill Survey**__\n\nPlease estimate your own skill at the game.  I\'ve put together a scale from Copper to Master.\n\nTo answer, just click a reaction button corresponding to the number next to the skill level you think most closely matches your current skill.\n\nPlease answer as accurately as possible.  We\'d appreciate it if you don\'t joke and rank yourself way higher or way lower than your actual approximate skill.\n\n:one: **Bronze**\n-Very little or no experience with the game\n-mostly goes for 4 combos if anything.\n-prefers difficulty level 1\n\n:two: **Silver**\n-understands how to lower the stack (get rid of towers and fill holes)\n-looks for 5-6 combos\n-sets up x2 chains (not so many skill chains)\n-comfortable on levels 2-4\n\n:three: **Gold**\n-comfortable on level 5\n-can do some skill chains, usually just in the nick of time.\n-great at chaining off of transforming garbage\n\n:four: **Platinum**\n-Comfortable on level 8.\n-good at recognizing patterns and building long skill chains.\n\n:five: **Diamond**\n-comfortable on level 10\n-strategizes on what kinds of garbage to send and when, and when to stop a chain.\n-sees chains many links ahead, and can quickly send exactly the garbage he wants.\n\n:six: **Master**\n-great at incorporating lots of medium-large combos while chaining, which produces very high garbage output.\n-often takes advantage of time lag chains, and can often work on two chains at once.\n-deep game sense, knowing when to do certain things that will give him/her an advantage, like always knowing just how much garbage is required to top out the opponent.'
 
 
 const messageIDForSkillSurvey = botSettings.messageIDForSkillSurvey
@@ -47,6 +48,7 @@ const roleIDPlatinum = botSettings.roleIDPlatinum
 const roleIDGold = botSettings.roleIDGold
 const roleIDSilver = botSettings.roleIDSilver
 const roleIDBronze = botSettings.roleIDBronze
+const roleIDCopper = botSettings.roleIDCopper
 const roleIDMasterPending = botSettings.roleIDMasterPending
 const roleIDDiamondPending = botSettings.roleIDDiamondPending
 const roleIDPlatinumPending = botSettings.roleIDPlatinumPending
@@ -56,6 +58,7 @@ const channelIDPlatinum = botSettings.channelIDPlatinum
 const channelIDGold = botSettings.channelIDGold
 const channelIDSilver = botSettings.channelIDSilver
 const channelIDBronze = botSettings.channelIDBronze
+const channelIDCopper = botSettings.channelIDCopper
 const cordeliasPrefix = botSettings.cordeliasPrefix
 const reactionIdentChallenge = botSettings.reactionIdentChallenge // :crossed_swords:
 const reactionIdentAcceptChallenge = botSettings.reactionIdentAcceptChallenge  //:OK:
@@ -982,7 +985,7 @@ function removeAllMatchmakingRoles(member, platformIndex) {
 }
 function removeAllSkillRoles(member) {
   //remove all skill roles
-  member.roles.remove([roleIDMaster, roleIDDiamond, roleIDPlatinum, roleIDGold, roleIDSilver, roleIDBronze, roleIDMasterPending, roleIDDiamondPending, roleIDPlatinumPending])
+  member.roles.remove([roleIDMaster, roleIDDiamond, roleIDPlatinum, roleIDGold, roleIDSilver, roleIDBronze, roleIDCopper, roleIDMasterPending, roleIDDiamondPending, roleIDPlatinumPending])
   log('removing all skill roles from ' + member.user.username + '...')
 
 }
@@ -1281,6 +1284,7 @@ bot.on('ready', () => {
     sleep(1).then(async function(){
       //also (when uncommented) update the Skill Survey message content.
       //await messageForSkillSurvey.edit(skillSurveyMessageContent)
+      await messageForSkillSurvey.react(reactionIdentCopper);
       await messageForSkillSurvey.react(reactionIdentBronze);
       await messageForSkillSurvey.react(reactionIdentSilver);
       await messageForSkillSurvey.react(reactionIdentGold);
@@ -1700,6 +1704,9 @@ bot.on('messageReactionAdd', (messageReaction, user) => {
         log(memberThatReacted.user.username + ' reacted to messageForSkillSurvey with emoji with Identifier: ' + emoji)
         let reactionWasValid = true
         switch(emoji){
+          case reactionIdentCopper:
+          changeSkillRole(memberThatReacted, 'Copper')
+          break;
           case reactionIdentBronze:
           changeSkillRole(memberThatReacted, 'Bronze')
           break;
