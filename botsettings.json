@@ -34,6 +34,7 @@
     }
   ],
   "roleIDNewMember": "",
+  "dontGiveNewMemberRole":false,
   "roleIDInactive": "",
   "textChannelIDForWelcome": "",
   "textChannelIDForSetupHelp": "",

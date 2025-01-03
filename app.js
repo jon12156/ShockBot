@@ -1380,8 +1380,11 @@ bot.on('guildMemberAdd', member => {
   log('User ' + member.user.username + ' has joined the server!')
 
   // Add a role when they join: the role is 'member'.  This searches roles by role name
-  var role = member.guild.roles.cache.find(x => x.id === roleIDNewMember);
-  member.roles.add(role);
+  if (!botSettings.dontGiveNewMemberRole){  //the goal here is to not give the new member role anymore, if the botsettings specify.  Otherwise, do so.
+    var role = member.guild.roles.cache.find(x => x.id === roleIDNewMember);
+    member.roles.add(role);
+  }
+
 });
 
 // Listener Event: a user left or joined a voice channel, or otherwise changed their voice state (mute/unmute..)
